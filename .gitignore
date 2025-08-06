@@ -28,6 +28,5 @@ venv.bak/
 
 # SSH Keys and sensitive files
 keys/
-web/keys/
 *.pem
 *.key
