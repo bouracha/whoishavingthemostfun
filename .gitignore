@@ -13,6 +13,7 @@ web/images/monica.png
 # System files
 .DS_Store
 **/.DS_Store
+*.DS_Store
 
 # Python
 __pycache__/
