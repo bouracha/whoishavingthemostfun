@@ -2,68 +2,90 @@
 <!doctype html>
 <html>
 <head>
-    <title>Family Elo Dashboard</title>
+    <title>Who's Having The Most Fun?</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 20px;
+            background-color: #f5f5f5;
         }
-        .button {
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .quote {
+            font-style: italic;
+            font-size: 24px;
+            color: #333;
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 5px;
+        }
+        .quote-author {
+            font-size: 16px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .game-button {
             background-color: #4CAF50;
             border: none;
             color: white;
-            padding: 15px 32px;
+            padding: 20px 40px;
             text-align: center;
             text-decoration: none;
             display: inline-block;
-            font-size: 16px;
-            margin: 10px;
+            font-size: 18px;
+            margin: 15px;
             cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: bold;
         }
-        .button:hover {
+        .game-button:hover {
             background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
-        .button.active {
+        .game-button.chess {
             background-color: #2196F3;
         }
-        #imageContainer {
-            margin-top: 20px;
+        .game-button.chess:hover {
+            background-color: #1976D2;
         }
-        img {
-            max-width: 90%;
+        .game-button.backgammon {
+            background-color: #FF9800;
+        }
+        .game-button.backgammon:hover {
+            background-color: #F57C00;
+        }
+        .monica-image {
+            max-width: 800px;
             height: auto;
+            margin: 20px 0;
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Family Elo Dashboard</h1>
-    
-    <div>
-        <button class="button active" id="leaderboardBtn" onclick="showLeaderboard()">Leaderboard</button>
-        <button class="button" id="ratingsBtn" onclick="showRatings()">Ratings</button>
-    </div>
-    
-    <div id="imageContainer">
-        <img id="displayImage" src="chess_leaderboard.png" alt="Chess Leaderboard">
-    </div>
-
-    <script>
-        function showLeaderboard() {
-            document.getElementById('displayImage').src = 'chess_leaderboard.png';
-            document.getElementById('displayImage').alt = 'Chess Leaderboard';
-            document.getElementById('leaderboardBtn').classList.add('active');
-            document.getElementById('ratingsBtn').classList.remove('active');
-        }
+    <div class="container">
+        <div class="quote">
+            "If we're not keeping score, how do we know who's having the most fun?"
+            <div class="quote-author">- Monica Geller</div>
+        </div>
         
-        function showRatings() {
-            document.getElementById('displayImage').src = 'chess_rating.png';
-            document.getElementById('displayImage').alt = 'Chess Ratings';
-            document.getElementById('ratingsBtn').classList.add('active');
-            document.getElementById('leaderboardBtn').classList.remove('active');
-        }
-    </script>
+        <div>
+            <a href="chess.html" class="game-button chess">Chess</a>
+            <a href="backgammon.html" class="game-button backgammon">Backgammon</a>
+        </div>
+        
+        <img src="images/monica.png" alt="Monica" class="monica-image">
+    </div>
 </body>
 </html>

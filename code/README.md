@@ -34,12 +34,13 @@ python3 graph.py "chess/dean.csv" "chess/eid.csv" "chess/anthony.csv"
 - Automatically extends timeline to include all games
 - Displays player names directly on the lines
 - Shows dots for start points, each game, and end points
-- Saves as `web/chess_rating.png` (or appropriate game name)
+- Saves as `web/chess_ratings_progress.png` (or appropriate game name)
 
 **Example:**
 ```bash
 # View all chess players
-python3 graph.py chess/dean.csv chess/eid.csv chess/anthony.csv chess/gavin.csv chess/oliver.csv
+python3 graph.py chess/dean.csv chess/eid.csv chess/grace.csv chess/gavin.csv chess/oliver.csv chess/>
+
 ```
 
 ### 3. Generate Leaderboard
@@ -120,7 +121,7 @@ ELO/
 │   ├── anthony.csv
 │   └── ...
 ├── web/                 # Generated visualizations
-│   ├── chess_rating.png
+│   ├── chess_ratings_progress.png
 │   ├── chess_leaderboard.png
 │   └── ...
 └── images/              # Custom images

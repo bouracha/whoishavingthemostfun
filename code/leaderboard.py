@@ -20,7 +20,7 @@ def add_medal_image(ax, x, y, position, size=0.04):
         if position not in medal_files:
             return
         
-        medal_path = f"images/medals/{medal_files[position]}"
+        medal_path = f"../web/images/medals/{medal_files[position]}"
         
         # Load and add the medal image
         img = plt.imread(medal_path)
@@ -37,7 +37,7 @@ def add_medal_image(ax, x, y, position, size=0.04):
 def add_player_image(ax, x, y, player_name, size=0.06):
     """Add a player image from the images/players/ folder"""
     try:
-        player_image_path = f"images/players/{player_name}.png"
+        player_image_path = f"../web/images/players/{player_name}.png"
         
         if os.path.exists(player_image_path):
             # Load and add the player image

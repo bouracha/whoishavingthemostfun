@@ -1,1 +1,27 @@
-__pycache__/\n*.py[cod]\n.venv/\n*.pem\n*.aws/\n.env
+# Generated images (created by code)
+web/*.png
+web/*.jpg
+web/*.jpeg
+
+# Player and medal images (can be regenerated/manually added)
+web/images/players/
+web/images/medals/
+
+# Keep Monica's image out of git
+web/images/monica.png
+
+# System files
+.DS_Store
+**/.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/

@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+    <title>Chess Elo Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .button.active {
+            background-color: #2196F3;
+        }
+        .home-button {
+            background-color: #666;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        .home-button:hover {
+            background-color: #555;
+        }
+        #imageContainer {
+            margin-top: 20px;
+        }
+        img {
+            max-width: 90%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">🏠 Home</a>
+    <div>
+        <button class="button active" id="leaderboardBtn" onclick="showLeaderboard()">Leaderboard</button>
+        <button class="button" id="ratingsBtn" onclick="showRatings()">Ratings</button>
+    </div>
+    
+    <div id="imageContainer">
+        <img id="displayImage" src="chess_leaderboard.png" alt="Chess Leaderboard">
+    </div>
+
+    <script>
+        function showLeaderboard() {
+            document.getElementById('displayImage').src = 'chess_leaderboard.png';
+            document.getElementById('displayImage').alt = 'Chess Leaderboard';
+            document.getElementById('leaderboardBtn').classList.add('active');
+            document.getElementById('ratingsBtn').classList.remove('active');
+        }
+        
+        function showRatings() {
+            document.getElementById('displayImage').src = 'chess_ratings_progress.png';
+            document.getElementById('displayImage').alt = 'Chess Ratings Progress';
+            document.getElementById('ratingsBtn').classList.add('active');
+            document.getElementById('leaderboardBtn').classList.remove('active');
+        }
+    </script>
+</body>
+</html> 
