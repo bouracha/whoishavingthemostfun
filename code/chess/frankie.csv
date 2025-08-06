@@ -1,0 +1,8 @@
+rating,opponent,result,colour,timestamp
+1200.0,no opponent,0.0,no colour,beginning of time
+1220.0,eve,1.0,black,2025-08-02 15:37:35.408345
+1200.0,gavin,0.0,white,2025-08-02 19:58:33.919820
+1217.0,dean,1.0,white,2025-08-03 19:17:28.622384
+1236.0,grace,1.0,black,2025-08-04 13:56:54.453076
+1215,oliver,0.0,white,2025-08-05 00:16:13.471678
+1236,oliver,1.0,black,2025-08-05 00:16:31.519392
