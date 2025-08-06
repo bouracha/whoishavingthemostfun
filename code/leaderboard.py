@@ -63,14 +63,17 @@ def get_current_ratings(game_folder):
     ratings = {}
     has_played = {}  # Track which players have actually played games
     
-    if not os.path.exists(game_folder):
-        print(f"Game folder '{game_folder}' does not exist!")
+    # Construct the full path to the database folder
+    database_path = os.path.join('..', 'database', game_folder)
+    
+    if not os.path.exists(database_path):
+        print(f"Game folder '{database_path}' does not exist!")
         return ratings, has_played
     
-    for filename in os.listdir(game_folder):
+    for filename in os.listdir(database_path):
         if filename.endswith('.csv'):
             player_name = filename.replace('.csv', '')
-            file_path = os.path.join(game_folder, filename)
+            file_path = os.path.join(database_path, filename)
             
             try:
                 data = pd.read_csv(file_path)

@@ -42,13 +42,13 @@ def update(rating1, rating2, score):
 def write_new_rating(player, new_rating, opponent, result, game='chess', colour='white'):
     now = datetime.now()
     df = pd.DataFrame(np.array(np.expand_dims((new_rating, opponent, result, colour, now), axis=0)))
-    with open(str(game)+'/'+str(player)+'.csv', 'a') as f:
+    with open(f'../database/{game}/{player}.csv', 'a') as f:
         df.to_csv(f, header=False, index=False)
 
 
 def read_ratings(player1, player2, game='chess'):
-    data1 = pd.read_csv(str(game)+'/'+str(player1) + ".csv")
-    data2 = pd.read_csv(str(game)+'/'+str(player2) + ".csv")
+    data1 = pd.read_csv(f'../database/{game}/{player1}.csv')
+    data2 = pd.read_csv(f'../database/{game}/{player2}.csv')
 
     rating1 = np.array(data1['rating'])
     rating2 = np.array(data2['rating'])
@@ -57,7 +57,7 @@ def read_ratings(player1, player2, game='chess'):
 
 def make_new_player(player_name='default', game='chess'):
     import os
-    file_path = str(game)+'/'+str(player_name) + '.csv'
+    file_path = f'../database/{game}/{player_name}.csv'
     
     # Only create new player if file doesn't exist
     if not os.path.exists(file_path):
@@ -77,7 +77,7 @@ def delete_last_entry(game, players):
         players (list): List of player names to delete last entry for
     """
     for player in players:
-        file_path = f"{game}/{player}.csv"
+        file_path = f"../database/{game}/{player}.csv"
         
         if not os.path.exists(file_path):
             print(f"Warning: Player '{player}' file not found for game '{game}'")

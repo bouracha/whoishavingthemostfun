@@ -179,7 +179,7 @@ if all_times:
         if not player_has_games:  # Only plot if player has no games
             # Get their last rating from the CSV file
             try:
-                data = pd.read_csv(f"chess/{player}.csv")
+                data = pd.read_csv(f"../database/chess/{player}.csv")
                 last_rating = data['rating'].iloc[-1]  # Get the last rating entry
             except:
                 last_rating = 1200.0  # Default if file doesn't exist or is empty
