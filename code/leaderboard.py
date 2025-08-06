@@ -188,7 +188,7 @@ def create_leaderboard(game_folder, excluded_players=None, title=None):
     plt.tight_layout()
     
     # Save the leaderboard
-    output_file = f'web/{game_folder}_leaderboard.png'
+    output_file = f'../web/{game_folder}_leaderboard.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close()
     

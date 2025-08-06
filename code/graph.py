@@ -224,5 +224,5 @@ plt.title(current_title, fontsize=16, fontweight='bold', pad=20)
 plt.tight_layout()
 
 # Save with high quality in web folder with game name
-plt.savefig(f'web/{game_type.lower()}_ratings_progress.png', dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+plt.savefig(f'../web/{game_type.lower()}_ratings_progress.png', dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
 plt.close()  # Close the figure to free memory

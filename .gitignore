@@ -2,6 +2,8 @@
 web/*.png
 web/*.jpg
 web/*.jpeg
+web/*_leaderboard.png
+web/*_ratings_progress.png
 
 # Player and medal images (can be regenerated/manually added)
 web/images/players/
