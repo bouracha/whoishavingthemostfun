@@ -21,6 +21,12 @@ from update import make_new_player, delete_last_entry
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+# Ensure proper UTF-8 encoding for all responses
+@app.after_request
+def after_request(response):
+    response.headers['Content-Type'] = response.headers.get('Content-Type', 'text/html') + '; charset=utf-8'
+    return response
+
 # Configuration
 DATABASE_DIR = os.path.join(os.path.dirname(__file__), 'database')
 WEB_DIR = os.path.join(os.path.dirname(__file__), 'web')
