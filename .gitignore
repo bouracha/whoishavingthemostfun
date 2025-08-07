@@ -5,6 +5,10 @@ web/*.jpeg
 web/*_leaderboard.png
 web/*_ratings_progress.png
 
+# Game data (live data stays on EC2 only)
+database/*/
+database/**/*.csv
+
 # Player and medal images (can be regenerated/manually added)
 web/images/players/
 web/images/medals/
