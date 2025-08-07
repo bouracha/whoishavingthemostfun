@@ -13,9 +13,10 @@ description: AWS deployment architecture and procedures
 
 ### AWS EC2 (API Server)  
 - **Instance**: `ec2-3-81-147-93.compute-1.amazonaws.com`
-- **Python Flask server**: Runs [server.py](mdc:server.py) on port 8080 (HTTP)
-- **Security Group**: Must allow inbound TCP port 8080 from 0.0.0.0/0
+- **Python Flask server**: Runs [server.py](mdc:server.py) on port 8080 (HTTP only)
+- **Security Group**: Must allow inbound TCP port 8080 from 0.0.0.0/0 (remove old port 8443)
 - **Database**: CSV files stored locally in `~/site/database/`
+- **No SSL setup required** - HTTP-only for simplicity and user-friendliness
 
 ## Deployment Process
 
@@ -46,7 +47,8 @@ description: AWS deployment architecture and procedures
 - Sensitive data: `keys/`, `*.pem`
 
 ## Security Considerations
-- HTTP-only API (no SSL complexity)
-- CORS configured for cross-origin access
-- Database files excluded from version control
-- SSH keys and certificates properly ignored
+- **HTTP-only API** - eliminates SSL certificate complexity and user setup friction
+- **CORS configured** - allows secure cross-origin access from S3/CloudFront to EC2
+- **Database files excluded** - player data not stored in version control for privacy
+- **Sensitive files ignored** - SSH keys, server logs, and runtime files excluded from Git
+- **Professional UX** - zero user configuration or certificate acceptance required

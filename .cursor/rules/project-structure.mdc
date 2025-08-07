@@ -4,32 +4,51 @@ alwaysApply: true
 
 # ELO Rating System Project Structure
 
-This is a web-based ELO rating system for tracking game ratings across multiple games (Chess, Ping Pong, Backgammon).
+This is a web-based ELO rating system for tracking game ratings across multiple games (Chess, Ping Pong, Backgammon). The system uses a hybrid architecture with static frontend assets and a Python Flask API backend.
+
+## Current Status (Latest Update)
+- ✅ **HTTP-only API** (no SSL complexity) - port 8080
+- ✅ **Smart URL detection** - works locally and in production
+- ✅ **User-friendly interface** - zero setup required
+- ✅ **Professional UX** - clean design, warnings only when needed
+- ✅ **Comprehensive documentation** - 6 Cursor rules for navigation
 
 ## Core Architecture
 
 ### Frontend (Static Web Assets)
-- **[web/index.html](mdc:web/index.html)** - Main landing page with game navigation
-- **[web/chess.html](mdc:web/chess.html)** - Chess leaderboard and ratings page
-- **[web/pingpong.html](mdc:web/pingpong.html)** - Ping pong leaderboard and ratings page  
-- **[web/backgammon.html](mdc:web/backgammon.html)** - Backgammon placeholder page
-- **[web/images/](mdc:web/images/)** - Player photos, medals, and Monica Geller image
+- **[web/index.html](mdc:web/index.html)** - Landing page with Monica Geller quote and game navigation buttons
+- **[web/chess.html](mdc:web/chess.html)** - Chess leaderboard, ratings progress, and add player functionality
+- **[web/pingpong.html](mdc:web/pingpong.html)** - Ping pong leaderboard, ratings progress, and add player functionality
+- **[web/backgammon.html](mdc:web/backgammon.html)** - Backgammon placeholder with add player functionality
+- **[web/images/](mdc:web/images/)** - Player photos, medal icons, and Monica Geller image
+- **Smart API detection** - automatically uses localhost:8080 for development, EC2 for production
 
 ### Backend (Python Flask API)
-- **[server.py](mdc:server.py)** - Flask HTTP server (port 8080) for API endpoints and static file serving
-- **[code/update.py](mdc:code/update.py)** - Core ELO calculation and player management functions
-- **[code/leaderboard.py](mdc:code/leaderboard.py)** - Generates leaderboard PNG charts
-- **[code/graph.py](mdc:code/graph.py)** - Generates rating progress PNG charts
+- **[server.py](mdc:server.py)** - Flask HTTP server (port 8080) with CORS enabled
+- **[code/update.py](mdc:code/update.py)** - ELO calculations, player management, dynamic path detection
+- **[code/leaderboard.py](mdc:code/leaderboard.py)** - Generates leaderboard PNG charts with medals and player photos
+- **[code/graph.py](mdc:code/graph.py)** - Generates rating progress PNG charts over time
 
 ### Data Storage
 - **[database/](mdc:database/)** - CSV files organized by game (chess/, pingpong/, backgammon/)
 - Each player has their own CSV file tracking rating history over time
+- Files excluded from Git for privacy and size management
 
-### Configuration
-- **[requirements.txt](mdc:requirements.txt)** - Python dependencies (Flask, pandas, matplotlib, etc.)
-- **[.gitignore](mdc:.gitignore)** - Excludes generated images, database files, and sensitive data
+### Configuration & Documentation
+- **[requirements.txt](mdc:requirements.txt)** - Python dependencies (Flask, Flask-CORS, pandas, matplotlib, numpy)
+- **[.gitignore](mdc:.gitignore)** - Excludes generated images, database files, virtual environments, and sensitive data
+- **[.cursor/rules/](mdc:.cursor/rules/)** - Comprehensive project documentation (6 rule files)
 
-## Deployment
-- Static assets hosted on AWS S3/CloudFront
-- Flask API server runs on AWS EC2
-- **[update.sh](mdc:update.sh)** - EC2 deployment script that pulls code, installs deps, generates charts, and starts server
+## Deployment Architecture
+- **Static assets**: AWS S3/CloudFront for global distribution
+- **API server**: AWS EC2 instance running Flask HTTP server
+- **[update.sh](mdc:update.sh)** - Automated deployment script (git pull, install deps, generate charts, start server)
+- **Security**: HTTP-only (no certificates), CORS-enabled, port 8080
+
+## Key Features
+- **Add players**: Point-and-click interface with modal forms
+- **Leaderboards**: Visual rankings with player photos and medals  
+- **Rating progress**: Historical rating charts over time
+- **Multi-game support**: Chess (active), Ping Pong (active), Backgammon (placeholder)
+- **Responsive design**: Works on desktop and mobile
+- **Zero setup**: No user configuration or certificate acceptance required

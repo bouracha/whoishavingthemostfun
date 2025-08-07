@@ -27,7 +27,17 @@ The [server.py](mdc:server.py) Flask application runs on **HTTP port 8080** and 
 - Configured with `CORS(app, origins="*")` for cross-origin requests
 - Required because static site (S3/CloudFront) calls API on different domain (EC2)
 
+## Smart URL Detection
+Frontend automatically detects environment and uses appropriate API endpoint:
+```javascript
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const apiUrl = isLocal 
+    ? 'http://localhost:8080/api/players/chess'  // Local development
+    : 'http://ec2-3-81-147-93.compute-1.amazonaws.com:8080/api/players/chess';  // Production
+```
+
 ## Important Notes
-- Server runs on **HTTP only** (no SSL certificates needed)
-- Uses dynamic path detection for database and web directories
-- Handles both local development and EC2 deployment contexts
+- **HTTP only** - no SSL certificates needed, eliminates user setup complexity
+- **CORS enabled** - allows cross-origin requests from S3/CloudFront to EC2
+- **Dynamic path detection** - handles both local development and EC2 deployment contexts
+- **Professional UX** - zero user configuration required, works immediately

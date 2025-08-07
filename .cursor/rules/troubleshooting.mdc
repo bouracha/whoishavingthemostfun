@@ -7,11 +7,11 @@ description: Common issues and troubleshooting solutions
 ## Common Issues and Solutions
 
 ### Server Won't Start
-**Problem**: `TypeError: Using ad-hoc certificates requires the cryptography library`
-**Solution**: Server now uses HTTP only - no SSL dependencies needed
-
 **Problem**: `Address already in use` on port 8080
-**Solution**: Kill existing processes: `pkill -f "python.*server.py"`
+**Solution**: Kill existing processes: `pkill -f "python.*server.py"` or `lsof -ti:8080 | xargs kill -9`
+
+**Problem**: `TypeError: Using ad-hoc certificates requires the cryptography library`
+**Solution**: ✅ RESOLVED - Server now uses HTTP only, no SSL dependencies needed
 
 ### Path Resolution Errors
 **Problem**: `FileNotFoundError: [Errno 2] No such file or directory: '../database/chess'`
@@ -20,10 +20,13 @@ description: Common issues and troubleshooting solutions
 
 ### API Calls Failing
 **Problem**: `net::ERR_CERT_AUTHORITY_INVALID` or mixed content errors
-**Solution**: All API endpoints now use HTTP (not HTTPS) - no certificate issues
+**Solution**: ✅ RESOLVED - All API endpoints now use HTTP (not HTTPS), no certificate issues
+
+**Problem**: Network errors when accessing via `file://` URLs
+**Solution**: Access via server URLs: `http://localhost:8080/` (local) or CloudFront URL (production)
 
 **Problem**: CORS errors when calling API from web frontend  
-**Solution**: [server.py](mdc:server.py) configured with `CORS(app, origins="*")`
+**Solution**: [server.py](mdc:server.py) configured with `CORS(app, origins="*")` - cross-origin requests allowed
 
 ### Chart Generation Issues
 **Problem**: `Could not load medal image` or player image errors
