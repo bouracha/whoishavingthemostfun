@@ -57,7 +57,19 @@ def read_ratings(player1, player2, game='chess'):
 
 def make_new_player(player_name='default', game='chess'):
     import os
-    file_path = f'../database/{game}/{player_name}.csv'
+    
+    # Determine the correct path based on where we're running from
+    if os.path.exists('database'):
+        # Running from root directory (server context)
+        file_path = f'database/{game}/{player_name}.csv'
+        database_dir = f'database/{game}'
+    else:
+        # Running from code directory (command line context)
+        file_path = f'../database/{game}/{player_name}.csv'
+        database_dir = f'../database/{game}'
+    
+    # Ensure the game directory exists
+    os.makedirs(database_dir, exist_ok=True)
     
     # Only create new player if file doesn't exist
     if not os.path.exists(file_path):

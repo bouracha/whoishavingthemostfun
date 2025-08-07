@@ -29,6 +29,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# Flask
+instance/
+.webassets-cache
+
 # SSH Keys and sensitive files
 keys/
 *.pem
