@@ -1,0 +1,49 @@
+---
+description: Common issues and troubleshooting solutions
+---
+
+# Troubleshooting Guide
+
+## Common Issues and Solutions
+
+### Server Won't Start
+**Problem**: `TypeError: Using ad-hoc certificates requires the cryptography library`
+**Solution**: Server now uses HTTP only - no SSL dependencies needed
+
+**Problem**: `Address already in use` on port 8080
+**Solution**: Kill existing processes: `pkill -f "python.*server.py"`
+
+### Path Resolution Errors
+**Problem**: `FileNotFoundError: [Errno 2] No such file or directory: '../database/chess'`
+**Root Cause**: Scripts use different paths when run from different directories
+**Solution**: Code uses dynamic path detection in [update.py](mdc:code/update.py), [leaderboard.py](mdc:code/leaderboard.py), [graph.py](mdc:code/graph.py)
+
+### API Calls Failing
+**Problem**: `net::ERR_CERT_AUTHORITY_INVALID` or mixed content errors
+**Solution**: All API endpoints now use HTTP (not HTTPS) - no certificate issues
+
+**Problem**: CORS errors when calling API from web frontend  
+**Solution**: [server.py](mdc:server.py) configured with `CORS(app, origins="*")`
+
+### Chart Generation Issues
+**Problem**: `Could not load medal image` or player image errors
+**Solution**: Images in [web/images/](mdc:web/images/) - code handles missing images gracefully
+
+**Problem**: `NameError: name 'game_type' is not defined` in [graph.py](mdc:code/graph.py)
+**Solution**: Fixed by moving `game_type` definition outside conditional blocks
+
+### Emoji Display Issues
+**Problem**: Emojis showing as `az` with accents instead of `➕` and `🏠`
+**Solution**: Added `<meta charset="UTF-8">` to all HTML files and UTF-8 content-type headers in Flask
+
+### Virtual Environment Issues  
+**Problem**: `ModuleNotFoundError` even after pip install
+**Root Cause**: Multiple Python installations (Homebrew vs Miniconda)
+**Solution**: Always use virtual environment: `python -m venv venv && source venv/bin/activate`
+
+### EC2 Deployment Issues
+**Problem**: Server not accessible externally
+**Solution**: Check AWS Security Group - ensure port 8080 (HTTP) is open to 0.0.0.0/0
+
+**Problem**: Process management - multiple servers running
+**Solution**: [update.sh](mdc:update.sh) includes proper process cleanup with `pkill` and PID tracking

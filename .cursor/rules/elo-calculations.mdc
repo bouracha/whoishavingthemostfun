@@ -1,0 +1,44 @@
+---
+description: ELO rating system calculations and player management
+---
+
+# ELO Rating System Implementation
+
+## Core Functions in [update.py](mdc:code/update.py)
+
+### Player Management
+- **`make_new_player(game, player_name)`** - Creates new player with default 1200 ELO rating
+- **`get_current_ratings(game_folder)`** - Reads all player CSV files and returns current ratings
+- **`update_ratings(game, winner, loser)`** - Updates ELO ratings after a match
+
+### ELO Calculation
+- **Default starting rating**: 1200
+- **K-factor**: 32 (rating change sensitivity)
+- **Formula**: Standard ELO with expected score calculation
+- **File format**: CSV with columns: `timestamp,rating,opponent,result`
+
+### Dynamic Path Detection
+Functions automatically detect execution context:
+- **From project root** (server context): Uses `database/` and `web/` paths
+- **From code/ directory** (command line): Uses `../database/` and `../web/` paths
+
+## Chart Generation
+
+### Leaderboard Charts - [leaderboard.py](mdc:code/leaderboard.py)
+- Generates `{game}_leaderboard.png` in [web/](mdc:web/) directory
+- Shows current rankings with player photos and medal icons
+- Handles missing player images gracefully
+
+### Rating Progress Charts - [graph.py](mdc:code/graph.py)
+- Generates `{game}_ratings_progress.png` in [web/](mdc:web/) directory  
+- Shows rating history over time for all players
+- Only generates if players have match history
+
+## Usage Examples
+```bash
+# Command line (from code/ directory)
+python3 update.py chess alice bob  # Alice beats Bob
+
+# API call (from server.py)
+POST /api/players/chess {"player_name": "charlie"}
+```

@@ -1,0 +1,33 @@
+---
+description: API endpoints and Flask server configuration
+---
+
+# Flask API Endpoints
+
+The [server.py](mdc:server.py) Flask application runs on **HTTP port 8080** and provides these endpoints:
+
+## API Routes
+
+### Health Check
+- **GET** `/api/health` - Returns server status for connectivity testing
+- Response: `{"status": "healthy", "message": "ELO server is running"}`
+
+### Add Player
+- **POST** `/api/players/{game}` - Adds a new player to specified game
+- Games: `chess`, `pingpong`, `backgammon`
+- Request body: `{"player_name": "string"}`
+- Calls [update.py](mdc:code/update.py) `make_new_player()` function
+- Auto-generates updated leaderboard and rating charts
+
+### Static File Serving
+- **GET** `/` - Serves [web/index.html](mdc:web/index.html)
+- **GET** `/{filename}` - Serves static files from [web/](mdc:web/) directory
+
+## CORS Configuration
+- Configured with `CORS(app, origins="*")` for cross-origin requests
+- Required because static site (S3/CloudFront) calls API on different domain (EC2)
+
+## Important Notes
+- Server runs on **HTTP only** (no SSL certificates needed)
+- Uses dynamic path detection for database and web directories
+- Handles both local development and EC2 deployment contexts

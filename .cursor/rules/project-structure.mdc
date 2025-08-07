@@ -1,0 +1,35 @@
+---
+alwaysApply: true
+---
+
+# ELO Rating System Project Structure
+
+This is a web-based ELO rating system for tracking game ratings across multiple games (Chess, Ping Pong, Backgammon).
+
+## Core Architecture
+
+### Frontend (Static Web Assets)
+- **[web/index.html](mdc:web/index.html)** - Main landing page with game navigation
+- **[web/chess.html](mdc:web/chess.html)** - Chess leaderboard and ratings page
+- **[web/pingpong.html](mdc:web/pingpong.html)** - Ping pong leaderboard and ratings page  
+- **[web/backgammon.html](mdc:web/backgammon.html)** - Backgammon placeholder page
+- **[web/images/](mdc:web/images/)** - Player photos, medals, and Monica Geller image
+
+### Backend (Python Flask API)
+- **[server.py](mdc:server.py)** - Flask HTTP server (port 8080) for API endpoints and static file serving
+- **[code/update.py](mdc:code/update.py)** - Core ELO calculation and player management functions
+- **[code/leaderboard.py](mdc:code/leaderboard.py)** - Generates leaderboard PNG charts
+- **[code/graph.py](mdc:code/graph.py)** - Generates rating progress PNG charts
+
+### Data Storage
+- **[database/](mdc:database/)** - CSV files organized by game (chess/, pingpong/, backgammon/)
+- Each player has their own CSV file tracking rating history over time
+
+### Configuration
+- **[requirements.txt](mdc:requirements.txt)** - Python dependencies (Flask, pandas, matplotlib, etc.)
+- **[.gitignore](mdc:.gitignore)** - Excludes generated images, database files, and sensitive data
+
+## Deployment
+- Static assets hosted on AWS S3/CloudFront
+- Flask API server runs on AWS EC2
+- **[update.sh](mdc:update.sh)** - EC2 deployment script that pulls code, installs deps, generates charts, and starts server

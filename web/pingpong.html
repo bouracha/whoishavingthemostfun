@@ -274,8 +274,14 @@
             addBtn.textContent = 'Adding...';
             addBtn.disabled = true;
 
+            // Determine API URL based on where we're running
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const apiUrl = isLocal 
+                ? 'http://localhost:8080/api/players/pingpong'
+                : 'http://ec2-3-81-147-93.compute-1.amazonaws.com:8080/api/players/pingpong';
+            
             // Make API call to add player
-            fetch('https://ec2-3-81-147-93.compute-1.amazonaws.com:8443/api/players/pingpong', {
+            fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,0 +1,40 @@
+---
+globs: *.html,*.js
+---
+
+# Frontend Web Application Behavior
+
+## Page Structure
+All HTML pages use consistent structure with UTF-8 encoding (`<meta charset="UTF-8">`) for emoji support.
+
+### [web/index.html](mdc:web/index.html) - Landing Page
+- Navigation buttons for Chess, Ping Pong, Backgammon
+- Monica Geller quote: "If we're not keeping score, how do we know who's having the most fun?"
+- Server status indicator (green = online, red = offline)
+- JavaScript checks API health at `http://ec2-3-81-147-93.compute-1.amazonaws.com:8080/api/health`
+
+### Game Pages Pattern
+Each game page ([chess.html](mdc:web/chess.html), [pingpong.html](mdc:web/pingpong.html), [backgammon.html](mdc:web/backgammon.html)) follows same pattern:
+
+#### UI Elements
+- **🏠 Home** button - Returns to [index.html](mdc:web/index.html)
+- **Leaderboard** button - Toggles `{game}_leaderboard.png` display
+- **Ratings Progress** button - Toggles `{game}_ratings_progress.png` display  
+- **➕ Add Player** button - Opens modal form for new player creation
+
+#### Add Player Modal
+- Modal overlay with form for player name input
+- JavaScript makes POST request to `/api/players/{game}` endpoint
+- Shows loading state during API call
+- Displays success/error messages
+- Auto-refreshes page on successful player addition
+
+## API Integration
+- All API calls use HTTP (not HTTPS) to avoid certificate complexity
+- CORS-enabled for cross-origin requests (S3/CloudFront → EC2)
+- Graceful error handling for offline server scenarios
+
+## Image Handling
+- Player images: `web/images/players/{name}.png`
+- Medal icons: `web/images/medals/{1st,2nd,3rd}.png`
+- Generated charts: `web/{game}_leaderboard.png` and `web/{game}_ratings_progress.png`

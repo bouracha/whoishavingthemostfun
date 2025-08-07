@@ -1,0 +1,52 @@
+---
+description: AWS deployment architecture and procedures
+---
+
+# AWS Deployment Architecture
+
+## Infrastructure Setup
+
+### AWS S3 + CloudFront (Static Assets)
+- **S3 Bucket**: Hosts HTML, CSS, JS files and generated PNG charts
+- **CloudFront CDN**: Provides HTTPS access and global caching
+- **Files synced**: All contents of [web/](mdc:web/) directory
+
+### AWS EC2 (API Server)  
+- **Instance**: `ec2-3-81-147-93.compute-1.amazonaws.com`
+- **Python Flask server**: Runs [server.py](mdc:server.py) on port 8080 (HTTP)
+- **Security Group**: Must allow inbound TCP port 8080 from 0.0.0.0/0
+- **Database**: CSV files stored locally in `~/site/database/`
+
+## Deployment Process
+
+### Automated Deployment Script - [update.sh](mdc:update.sh)
+```bash
+# On EC2, run:
+./update.sh
+```
+
+**Script performs:**
+1. **Git pull** - Downloads latest code from GitHub
+2. **Install dependencies** - `pip install -r requirements.txt` in virtual environment
+3. **Stop existing server** - Kills any running server processes using `pkill`
+4. **Generate charts** - Runs leaderboard.py and graph.py for all games
+5. **Start server** - Launches server.py in background with logging
+
+### Manual Steps
+1. **Local development**: Push changes to GitHub
+2. **EC2 deployment**: SSH to EC2 and run `./update.sh`
+3. **S3 sync**: Upload generated PNG files to S3 bucket
+4. **CloudFront**: May need cache invalidation for immediate updates
+
+## File Exclusions ([.gitignore](mdc:.gitignore))
+- Generated images: `web/*.png`, `web/*.jpg`
+- Database files: `database/**/*.csv`
+- Server runtime: `server.log`, `server.pid`, `nohup.out`
+- Python environment: `venv/`, `__pycache__/`
+- Sensitive data: `keys/`, `*.pem`
+
+## Security Considerations
+- HTTP-only API (no SSL complexity)
+- CORS configured for cross-origin access
+- Database files excluded from version control
+- SSH keys and certificates properly ignored
