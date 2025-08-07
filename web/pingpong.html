@@ -276,6 +276,18 @@
 
             // Determine API URL based on where we're running
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const isHTTPS = window.location.protocol === 'https:';
+            
+            // Check for mixed content issue
+            if (isHTTPS && !isLocal) {
+                alert('⚠️ Mixed Content Restriction\n\nTo add players, please use the direct server URL:\nhttp://ec2-3-81-147-93.compute-1.amazonaws.com:8080/pingpong.html\n\n(HTTPS sites cannot make HTTP API calls for security)');
+                // Reset button and close modal
+                addBtn.textContent = originalText;
+                addBtn.disabled = false;
+                document.getElementById('addPlayerModal').style.display = 'none';
+                return;
+            }
+            
             const apiUrl = isLocal 
                 ? 'http://localhost:8080/api/players/pingpong'
                 : 'http://ec2-3-81-147-93.compute-1.amazonaws.com:8080/api/players/pingpong';
