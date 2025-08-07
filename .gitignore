@@ -33,6 +33,11 @@ venv.bak/
 instance/
 .webassets-cache
 
+# Server runtime files
+server.log
+server.pid
+nohup.out
+
 # SSH Keys and sensitive files
 keys/
 *.pem
