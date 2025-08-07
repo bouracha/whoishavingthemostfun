@@ -230,5 +230,13 @@ plt.title(current_title, fontsize=16, fontweight='bold', pad=20)
 plt.tight_layout()
 
 # Save with high quality in web folder with game name
-plt.savefig(f'../web/{game_type.lower()}_ratings_progress.png', dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+# Determine the correct output path based on where we're running from
+if os.path.exists('web'):
+    # Running from root directory (deployment context)
+    output_file = f'web/{game_type.lower()}_ratings_progress.png'
+else:
+    # Running from code directory (command line context)
+    output_file = f'../web/{game_type.lower()}_ratings_progress.png'
+
+plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
 plt.close()  # Close the figure to free memory

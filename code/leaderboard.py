@@ -64,7 +64,13 @@ def get_current_ratings(game_folder):
     has_played = {}  # Track which players have actually played games
     
     # Construct the full path to the database folder
-    database_path = os.path.join('..', 'database', game_folder)
+    # Determine the correct database path based on where we're running from
+    if os.path.exists('database'):
+        # Running from root directory (deployment context)
+        database_path = os.path.join('database', game_folder)
+    else:
+        # Running from code directory (command line context)
+        database_path = os.path.join('..', 'database', game_folder)
     
     if not os.path.exists(database_path):
         print(f"Game folder '{database_path}' does not exist!")
@@ -191,7 +197,13 @@ def create_leaderboard(game_folder, excluded_players=None, title=None):
     plt.tight_layout()
     
     # Save the leaderboard
-    output_file = f'../web/{game_folder}_leaderboard.png'
+    # Determine the correct output path based on where we're running from
+    if os.path.exists('web'):
+        # Running from root directory (deployment context)
+        output_file = f'web/{game_folder}_leaderboard.png'
+    else:
+        # Running from code directory (command line context)
+        output_file = f'../web/{game_folder}_leaderboard.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close()
     
