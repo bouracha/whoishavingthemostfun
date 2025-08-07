@@ -19,7 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'code'))
 from update import make_new_player, delete_last_entry
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, origins="*")  # Enable CORS for all origins (including S3/CloudFront)
 
 # Ensure proper UTF-8 encoding for all responses
 @app.after_request
