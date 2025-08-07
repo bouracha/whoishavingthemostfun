@@ -87,10 +87,16 @@
                 <div class="quote-author">- Monica Geller</div>
             </div>
             
-            <div style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px;">
-                <strong>🔐 First-time setup:</strong> To use "Add Player" buttons, first visit 
-                <a href="https://ec2-3-81-147-93.compute-1.amazonaws.com:8443/api/health" target="_blank">this link</a> 
-                and accept the security certificate.
+            <div id="certificateNotice" style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; display: none;">
+                <strong>🔐 Setup Required:</strong> To use "Add Player" buttons, you need to accept the security certificate.
+                <br><br>
+                <button onclick="checkCertificate()" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                    ✓ Accept Certificate & Enable Features
+                </button>
+            </div>
+            
+            <div id="certificateSuccess" style="background-color: #d4edda; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; display: none;">
+                <strong>✅ Ready!</strong> Certificate accepted. "Add Player" buttons are now enabled.
             </div>
         
         <div>
@@ -101,5 +107,45 @@
         
         <img src="images/monica.png" alt="Monica" class="monica-image">
     </div>
+    
+    <script>
+        // Check if the API certificate is accepted
+        async function checkCertificateStatus() {
+            try {
+                const response = await fetch('https://ec2-3-81-147-93.compute-1.amazonaws.com:8443/api/health');
+                if (response.ok) {
+                    // Certificate is accepted
+                    document.getElementById('certificateNotice').style.display = 'none';
+                    document.getElementById('certificateSuccess').style.display = 'block';
+                    return true;
+                }
+            } catch (error) {
+                // Certificate not accepted or other error
+                document.getElementById('certificateNotice').style.display = 'block';
+                document.getElementById('certificateSuccess').style.display = 'none';
+                return false;
+            }
+            return false;
+        }
+        
+        // Function called when user clicks the certificate button
+        function checkCertificate() {
+            // Open the API health endpoint in a new tab for certificate acceptance
+            window.open('https://ec2-3-81-147-93.compute-1.amazonaws.com:8443/api/health', '_blank');
+            
+            // Show instructions
+            alert('Please:\n1. Accept the security certificate in the new tab\n2. Close that tab and return here\n3. The page will automatically update');
+            
+            // Check status after a delay
+            setTimeout(() => {
+                checkCertificateStatus();
+            }, 3000);
+        }
+        
+        // Check certificate status when page loads
+        window.addEventListener('load', () => {
+            checkCertificateStatus();
+        });
+    </script>
 </body>
 </html>
