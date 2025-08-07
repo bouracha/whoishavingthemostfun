@@ -176,9 +176,32 @@ if __name__ == '__main__':
     print(f"Database directory: {DATABASE_DIR}")
     print(f"Web directory: {WEB_DIR}")
     print(f"Code directory: {CODE_DIR}")
-    print("\nServer will be available at: http://localhost:8080")
-    print("Press Ctrl+C to stop the server")
     
-    # Use HTTPS with self-signed certificate for development
-    # In production, you'd use a proper SSL certificate
-    app.run(debug=True, host='0.0.0.0', port=8443, ssl_context='adhoc')
+    # Check for SSL certificate files
+    import os
+    ssl_cert_path = '/etc/letsencrypt/live'
+    ssl_context = None
+    
+    # Look for Let's Encrypt certificates
+    if os.path.exists(ssl_cert_path):
+        # Find the first domain directory
+        for domain_dir in os.listdir(ssl_cert_path):
+            cert_dir = os.path.join(ssl_cert_path, domain_dir)
+            if os.path.isdir(cert_dir):
+                fullchain = os.path.join(cert_dir, 'fullchain.pem')
+                privkey = os.path.join(cert_dir, 'privkey.pem')
+                if os.path.exists(fullchain) and os.path.exists(privkey):
+                    ssl_context = (fullchain, privkey)
+                    print(f"✅ Using SSL certificate for {domain_dir}")
+                    print(f"Server will be available at: https://{domain_dir}:8443")
+                    break
+    
+    if ssl_context is None:
+        # Fall back to self-signed certificate
+        ssl_context = 'adhoc'
+        print("⚠️  Using self-signed certificate (development only)")
+        print("Server will be available at: https://localhost:8443")
+        print("Browsers will show security warnings for self-signed certificates")
+    
+    print("Press Ctrl+C to stop the server")
+    app.run(debug=True, host='0.0.0.0', port=8443, ssl_context=ssl_context)
