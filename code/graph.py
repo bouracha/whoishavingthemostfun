@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import datetime
+import os
 
 # Set up matplotlib for better looking plots
 plt.style.use('seaborn-v0_8')
