@@ -1,0 +1,5 @@
+---
+description: only suggest to push to github when i ask, not after each change
+globs:
+alwaysApply: false
+---

@@ -69,6 +69,15 @@ for i in range(1, len(sys.argv)):
   all_labels.extend([label] * len(times))
   player_data[label] = (times, ratings, starting_rating)
 
+# Determine game type from the first argument (do this before the conditional)
+first_arg = sys.argv[1]
+if '/database/' in first_arg:
+    # Extract game type from database path
+    game_type = first_arg.split('/database/')[1].split('/')[0].title()
+else:
+    # Fallback to original logic
+    game_type = first_arg.split('/')[0].title()
+
 # Plot all data
 if all_times:
     # Convert to matplotlib dates
@@ -83,9 +92,6 @@ if all_times:
     
     # Determine time scale automatically
     time_span = last_game_time - first_game_time
-    
-    # Determine game type from the first argument
-    game_type = sys.argv[1].split('/')[0].title()
     
     # Count total games across all players
     total_games = 0

@@ -106,13 +106,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ELO rating system utilities')
     parser.add_argument('--delete_last_entry', action='store_true', 
                        help='Delete the last entry for specified players')
+    parser.add_argument('--new_player', action='store_true',
+                       help='Create new player(s) for the specified game')
     parser.add_argument('game', type=str, help='Game name (e.g., chess, pingpong)')
-    parser.add_argument('players', nargs='+', help='Player names to delete last entry for')
+    parser.add_argument('players', nargs='+', help='Player names')
     
     args = parser.parse_args()
     
     if args.delete_last_entry:
         delete_last_entry(args.game, args.players)
+    elif args.new_player:
+        for player in args.players:
+            make_new_player(player, args.game)
     else:
-        print("Use --delete_last_entry to delete the last entry for players")
-        print("Example: python3 update.py --delete_last_entry chess dean gavin")
+        print("Usage:")
+        print("  Create new player(s): python3 update.py --new_player <game> <player1> [player2] ...")
+        print("  Delete last entry: python3 update.py --delete_last_entry <game> <player1> [player2] ...")
+        print("")
+        print("Examples:")
+        print("  python3 update.py --new_player chess anthony")
+        print("  python3 update.py --new_player pingpong gavin eve dean")
+        print("  python3 update.py --delete_last_entry chess dean gavin")

@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+    <title>Ping Pong Elo Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .button.active {
+            background-color: #2196F3;
+        }
+        .home-button {
+            background-color: #666;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        .home-button:hover {
+            background-color: #555;
+        }
+        #imageContainer {
+            margin-top: 20px;
+        }
+        img {
+            max-width: 90%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">🏠 Home</a>
+    <div>
+        <button class="button active" id="leaderboardBtn" onclick="showLeaderboard()">Leaderboard</button>
+        <button class="button" id="ratingsBtn" onclick="showRatings()">Ratings</button>
+    </div>
+    
+    <div id="imageContainer">
+        <div id="placeholder" style="font-size: 24px; color: #666; margin: 100px 0;">
+            <h2>Ping Pong Dashboard</h2>
+            <p>No players added yet.</p>
+            <p>Add players using: <code>python3 update.py --new_player pingpong &lt;player_name&gt;</code></p>
+        </div>
+        <img id="displayImage" src="pingpong_leaderboard.png" alt="Ping Pong Leaderboard" style="display: none;">
+    </div>
+
+    <script>
+        function showLeaderboard() {
+            const placeholder = document.getElementById('placeholder');
+            const image = document.getElementById('displayImage');
+            
+            // Check if leaderboard image exists
+            fetch('pingpong_leaderboard.png')
+                .then(response => {
+                    if (response.ok) {
+                        placeholder.style.display = 'none';
+                        image.style.display = 'block';
+                        image.src = 'pingpong_leaderboard.png';
+                        image.alt = 'Ping Pong Leaderboard';
+                    } else {
+                        placeholder.style.display = 'block';
+                        image.style.display = 'none';
+                        placeholder.innerHTML = `
+                            <h2>Ping Pong Leaderboard</h2>
+                            <p>No players added yet.</p>
+                            <p>Add players using: <code>python3 update.py --new_player pingpong &lt;player_name&gt;</code></p>
+                        `;
+                    }
+                })
+                .catch(() => {
+                    placeholder.style.display = 'block';
+                    image.style.display = 'none';
+                    placeholder.innerHTML = `
+                        <h2>Ping Pong Leaderboard</h2>
+                        <p>No players added yet.</p>
+                        <p>Add players using: <code>python3 update.py --new_player pingpong &lt;player_name&gt;</code></p>
+                    `;
+                });
+            
+            document.getElementById('leaderboardBtn').classList.add('active');
+            document.getElementById('ratingsBtn').classList.remove('active');
+        }
+        
+        function showRatings() {
+            const placeholder = document.getElementById('placeholder');
+            const image = document.getElementById('displayImage');
+            
+            // Check if ratings image exists
+            fetch('pingpong_ratings_progress.png')
+                .then(response => {
+                    if (response.ok) {
+                        placeholder.style.display = 'none';
+                        image.style.display = 'block';
+                        image.src = 'pingpong_ratings_progress.png';
+                        image.alt = 'Ping Pong Ratings Progress';
+                    } else {
+                        placeholder.style.display = 'block';
+                        image.style.display = 'none';
+                        placeholder.innerHTML = `
+                            <h2>Ping Pong Ratings Progress</h2>
+                            <p>No players added yet.</p>
+                            <p>Add players using: <code>python3 update.py --new_player pingpong &lt;player_name&gt;</code></p>
+                        `;
+                    }
+                })
+                .catch(() => {
+                    placeholder.style.display = 'block';
+                    image.style.display = 'none';
+                    placeholder.innerHTML = `
+                        <h2>Ping Pong Ratings Progress</h2>
+                        <p>No players added yet.</p>
+                        <p>Add players using: <code>python3 update.py --new_player pingpong &lt;player_name&gt;</code></p>
+                    `;
+                });
+            
+            document.getElementById('ratingsBtn').classList.add('active');
+            document.getElementById('leaderboardBtn').classList.remove('active');
+        }
+        
+        // Show leaderboard by default
+        showLeaderboard();
+    </script>
+</body>
+</html> 
