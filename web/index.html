@@ -105,25 +105,10 @@
         async function checkServerStatus() {
             // Determine API URL based on where we're running
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const isHTTPS = window.location.protocol === 'https:';
             
-            let apiUrl;
-            if (isLocal) {
-                apiUrl = 'http://localhost:8080/api/health';
-            } else if (isHTTPS) {
-                // For HTTPS sites (CloudFront), we need to proxy through the same origin
-                // or gracefully handle the mixed content restriction
-                apiUrl = null; // Will handle this case below
-            } else {
-                apiUrl = 'http://ec2-3-81-147-93.compute-1.amazonaws.com:8080/api/health';
-            }
-                
-            if (apiUrl === null) {
-                // HTTPS site - can't check HTTP API due to mixed content restrictions
-                // Just assume server is online and let the game pages handle it
-                document.getElementById('serverOffline').style.display = 'none';
-                return true;
-            }
+            const apiUrl = isLocal 
+                ? 'http://localhost:8080/api/health'
+                : '/api/health'; // Same domain - works for both HTTP and HTTPS!
             
             try {
                 const response = await fetch(apiUrl);
