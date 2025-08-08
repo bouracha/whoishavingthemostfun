@@ -41,13 +41,21 @@ def update(rating1, rating2, score, K: int = 40):
 def write_new_rating(player, new_rating, opponent, result, game='chess', colour='white'):
     now = datetime.now()
     df = pd.DataFrame(np.array(np.expand_dims((new_rating, opponent, result, colour, now), axis=0)))
-    with open(f'../database/{game}/{player}.csv', 'a') as f:
+    
+    # Determine the correct path (database/ or ../database/)
+    database_path = "database" if os.path.exists("database") else "../database"
+    file_path = f"{database_path}/{game}/{player}.csv"
+    
+    with open(file_path, 'a') as f:
         df.to_csv(f, header=False, index=False)
 
 
 def read_ratings(player1, player2, game='chess'):
-    data1 = pd.read_csv(f'../database/{game}/{player1}.csv')
-    data2 = pd.read_csv(f'../database/{game}/{player2}.csv')
+    # Determine the correct path (database/ or ../database/)
+    database_path = "database" if os.path.exists("database") else "../database"
+    
+    data1 = pd.read_csv(f'{database_path}/{game}/{player1}.csv')
+    data2 = pd.read_csv(f'{database_path}/{game}/{player2}.csv')
 
     rating1 = np.array(data1['rating'])
     rating2 = np.array(data2['rating'])

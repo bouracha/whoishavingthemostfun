@@ -106,9 +106,17 @@ if all_times:
     
     # Count total games across all players
     total_games = 0
+    print("DEBUG: Counting games in player_data:")
     for player, (times, ratings, starting_rating) in player_data.items():
-        # Subtract 1 from each player's game count to exclude the "beginning of time" entry
-        total_games += max(0, len(times) - 1)
+        # The times list already excludes "beginning of time", so count all timestamps
+        player_games = len(times)
+        total_games += player_games
+        print(f"DEBUG: {player}: {len(times)} timestamps, {player_games} games")
+    
+    print(f"DEBUG: Total game entries before division: {total_games}")
+    # Since each game involves 2 players, divide by 2 to get actual number of games
+    total_games = total_games // 2
+    print(f"DEBUG: Total games after division: {total_games}")
     
     plt.xlabel("Time")
     plt.title(f"{game_type} ({total_games} total games)")
