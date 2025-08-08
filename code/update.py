@@ -4,8 +4,7 @@ from datetime import datetime
 import argparse
 import os
 
-def update(rating1, rating2, score):
-    K = 40
+def update(rating1, rating2, score, K: int = 40):
 
     score1 = score
     score2 = 1 - score
@@ -24,8 +23,8 @@ def update(rating1, rating2, score):
         prob_of_2_winning = probabilityOfStrongerPlayerWinning
 
     print("Probability of White winning: {:.5f}".format(prob_of_1_winning))
-    rating_change1 = (score1 - prob_of_1_winning)*K
-    rating_change2 = (score2 - prob_of_2_winning)*K
+    rating_change1 = (score1 - prob_of_1_winning) * K
+    rating_change2 = (score2 - prob_of_2_winning) * K
 
     if np.abs(rating_change1) < 1:
         rating_change1 = rating_change1/np.abs(rating_change1)
@@ -80,6 +79,37 @@ def make_new_player(player_name='default', game='chess'):
     else:
         print(f"Player '{player_name}' already exists for game '{game}' - skipping creation")
 
+def delete_player(player_name, game='chess'):
+    """
+    Completely delete a player from the specified game.
+    This removes their CSV file and all their rating history.
+    
+    Args:
+        player_name (str): Name of the player to delete
+        game (str): The game name (e.g., 'chess', 'pingpong', 'backgammon')
+    
+    Returns:
+        bool: True if player was deleted successfully, False otherwise
+    """
+    # Determine the correct path (database/ or ../database/)
+    database_path = "database" if os.path.exists("database") else "../database"
+    file_path = f"{database_path}/{game}/{player_name}.csv"
+    
+    if not os.path.exists(file_path):
+        print(f"❌ Player '{player_name}' not found for game '{game}'")
+        return False
+    
+    try:
+        # Remove the player's CSV file
+        os.remove(file_path)
+        print(f"✅ Player '{player_name}' completely deleted from game '{game}'")
+        print(f"   Removed file: {file_path}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error deleting player '{player_name}': {e}")
+        return False
+
 def delete_last_entry(game, players):
     """
     Delete the last entry for each specified player in the given game.
@@ -118,6 +148,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ELO rating system utilities')
     parser.add_argument('--delete_last_entry', action='store_true', 
                        help='Delete the last entry for specified players')
+    parser.add_argument('--delete_player', action='store_true',
+                       help='Completely delete player(s) and all their data')
     parser.add_argument('--new_player', action='store_true',
                        help='Create new player(s) for the specified game')
     parser.add_argument('game', type=str, help='Game name (e.g., chess, pingpong)')
@@ -127,6 +159,9 @@ if __name__ == "__main__":
     
     if args.delete_last_entry:
         delete_last_entry(args.game, args.players)
+    elif args.delete_player:
+        for player in args.players:
+            delete_player(player, args.game)
     elif args.new_player:
         for player in args.players:
             make_new_player(player, args.game)
@@ -134,8 +169,10 @@ if __name__ == "__main__":
         print("Usage:")
         print("  Create new player(s): python3 update.py --new_player <game> <player1> [player2] ...")
         print("  Delete last entry: python3 update.py --delete_last_entry <game> <player1> [player2] ...")
+        print("  Delete player(s): python3 update.py --delete_player <game> <player1> [player2] ...")
         print("")
         print("Examples:")
         print("  python3 update.py --new_player chess anthony")
         print("  python3 update.py --new_player pingpong gavin eve dean")
         print("  python3 update.py --delete_last_entry chess dean gavin")
+        print("  python3 update.py --delete_player chess testplayer")

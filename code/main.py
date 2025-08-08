@@ -1,6 +1,7 @@
 import pandas as pd
 from update import *
 import argparse
+from config import get_k_factor
 
 parser = argparse.ArgumentParser()
 
@@ -16,7 +17,8 @@ print("=========================================================================
 ratings1, ratings2 = read_ratings(opt.player1, opt.player2, opt.game)
 rating1, rating2 = ratings1[-1], ratings2[-1]
 
-new_rating1, new_rating2 = update(rating1, rating2, opt.score)
+game = (opt.game or '').lower()
+new_rating1, new_rating2 = update(rating1, rating2, opt.score, K=get_k_factor(game))
 
 print(str(opt.player1)+"'s new ratings is "+str(int(new_rating1))+" and "+str(opt.player2)+"'s new ratings is "+str(int(new_rating2)))
 
