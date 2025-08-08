@@ -8,13 +8,10 @@ import sys
 import os
 import subprocess
 
-# Add the code directory to Python path
-sys.path.append('code')
-
 try:
     from update import delete_player, make_new_player
 except ImportError:
-    print("❌ Error: Could not import update functions. Make sure you're running from the project root.")
+    print("❌ Error: Could not import update functions. Make sure you're running from the code directory.")
     sys.exit(1)
 
 def list_players(game):
@@ -58,7 +55,7 @@ def regenerate_charts(game):
     try:
         # Generate leaderboard
         print(f"  📈 Generating leaderboard...")
-        subprocess.run([sys.executable, 'code/leaderboard.py', game], check=True)
+        subprocess.run([sys.executable, 'leaderboard.py', game], check=True)
         
         # Generate rating charts for all remaining players
         database_path = "database" if os.path.exists("database") else "../database"
@@ -68,7 +65,7 @@ def regenerate_charts(game):
             csv_files = [f"{game_path}/{f}" for f in os.listdir(game_path) if f.endswith('.csv')]
             if csv_files:
                 print(f"  📊 Generating rating progress charts...")
-                subprocess.run([sys.executable, 'code/graph.py'] + csv_files, check=True)
+                subprocess.run([sys.executable, 'graph.py'] + csv_files, check=True)
             else:
                 print(f"  ℹ️  No players remaining in {game}")
         

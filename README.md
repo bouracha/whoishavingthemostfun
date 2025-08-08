@@ -45,10 +45,10 @@ See `SERVER_README.md` for a step‑by‑step runbook (install, configure Nginx,
 ```
 whoishavingthemostfun/
   web/                 # Static frontend pages and generated charts (PNG)
-  code/                # Python logic for charts and utilities
+  code/                # Python logic, charts, and utilities
+    manage_players.py  # Backend-only player management (list/delete)
   database/            # CSV files per game/player (not tracked by git)
   server.py            # Flask API and static server (dev)
-  manage_players.py    # Backend-only player management (list/delete)
   SERVER_README.md     # Production deployment/runbook
   README.md            # You are here
 ```
@@ -83,6 +83,7 @@ cd ~/site
 - Logs: `tail -f server.log` (Flask), `/var/log/nginx/*.log` (Nginx)
 - Player management (backend-only):
 ```
+cd code
 python3 manage_players.py list <game>
 echo "<player>" | python3 manage_players.py delete <game> <player>
 ```
