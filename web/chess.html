@@ -56,23 +56,74 @@
             max-width: 90%;
             height: auto;
         }
-        .player-management {
-            margin: 20px 0;
+        .main-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+        
+        .action-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px auto;
+            max-width: 1200px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .action-panel h3 {
+            margin: 0 0 20px 0;
+            color: #495057;
+            font-size: 18px;
             text-align: center;
         }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
         .add-player-btn {
-            background-color: #4CAF50;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
             border: none;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            border-radius: 4px;
-            margin: 0 5px;
-            transition: background-color 0.3s;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
         }
+        
         .add-player-btn:hover {
-            background-color: #45a049;
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+        
+        .add-result-btn {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+        }
+        
+        .add-result-btn:hover {
+            background: linear-gradient(135deg, #1976D2, #1565C0);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
         }
         .modal {
             display: none;
@@ -139,19 +190,24 @@
 <body>
     <a href="index.html" class="home-button">🏠 Home</a>
     
-    <div class="player-management">
-        <button class="add-player-btn" onclick="openAddPlayerModal()">➕ Add Player</button>
-        <button class="add-player-btn" onclick="openAddResultModal()">🏆 Add Result</button>
+    <div class="action-panel">
+        <h3>📊 Chess Management</h3>
+        <div class="action-buttons">
+            <button class="add-player-btn" onclick="openAddPlayerModal()">➕ Add Player</button>
+            <button class="add-result-btn" onclick="openAddResultModal()">🏆 Add Result</button>
+        </div>
         <div id="statusMessage" class="status-message"></div>
     </div>
     
-    <div>
-        <button class="button active" id="leaderboardBtn" onclick="showLeaderboard()">Leaderboard</button>
-        <button class="button" id="ratingsBtn" onclick="showRatings()">Ratings</button>
-    </div>
-    
-    <div id="imageContainer">
-        <img id="displayImage" src="chess_leaderboard.png" alt="Chess Leaderboard">
+    <div class="main-content">
+        <div>
+            <button class="button active" id="leaderboardBtn" onclick="showLeaderboard()">Leaderboard</button>
+            <button class="button" id="ratingsBtn" onclick="showRatings()">Rating Progress</button>
+        </div>
+        
+        <div id="imageContainer">
+            <img id="displayImage" src="chess_leaderboard.png" alt="Chess Leaderboard">
+        </div>
     </div>
 
     <!-- Add Player Modal -->
