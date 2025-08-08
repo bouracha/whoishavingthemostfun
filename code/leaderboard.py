@@ -41,27 +41,35 @@ def add_medal_image(ax, x, y, position, size=0.04):
                 color='#333333', bbox=dict(boxstyle="circle,pad=0.3", facecolor='gold' if position==1 else 'silver' if position==2 else '#CD7F32'))
 
 def add_player_image(ax, x, y, player_name, size=0.06):
-    """Add a player image from the images/players/ folder"""
+    """Add a player image from the images/players/ folder, with default fallback"""
     try:
         # Determine the correct player image path based on where we're running from
         if os.path.exists('web'):
             # Running from root directory (deployment context)
             player_image_path = f"web/images/players/{player_name}.png"
+            default_image_path = "web/images/players/default.png"
         else:
             # Running from code directory (command line context)
             player_image_path = f"../web/images/players/{player_name}.png"
+            default_image_path = "../web/images/players/default.png"
         
+        # Try to load the player's specific image first
         if os.path.exists(player_image_path):
-            # Load and add the player image
             img = plt.imread(player_image_path)
-            imagebox = OffsetImage(img, zoom=size)
-            ab = AnnotationBbox(imagebox, (x, y), frameon=False)
-            ax.add_artist(ab)
+        # Fallback to default image if player image doesn't exist
+        elif os.path.exists(default_image_path):
+            img = plt.imread(default_image_path)
         else:
-            # If no image exists, add a placeholder circle
+            # If no default image exists either, use placeholder
             circle = plt.Circle((x, y), size*0.5, facecolor='#CCCCCC', edgecolor='#999999', linewidth=2)
             ax.add_patch(circle)
             ax.text(x, y, "?", fontsize=10, fontweight='bold', ha='center', va='center', color='#666666')
+            return
+            
+        # Add the image (either player-specific or default)
+        imagebox = OffsetImage(img, zoom=size)
+        ab = AnnotationBbox(imagebox, (x, y), frameon=False)
+        ax.add_artist(ab)
             
     except Exception as e:
         print(f"Could not load player image for {player_name}: {e}")

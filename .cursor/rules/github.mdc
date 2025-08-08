@@ -4,35 +4,45 @@ globs:
 alwaysApply: true
 ---
 
-# GitHub Push Policy - STRICT
+# GitHub Push & Testing Policy - STRICT
 
-**NEVER suggest, mention, or offer to push to GitHub unless the user explicitly asks.**
+**NEVER suggest, mention, or offer to push to GitHub OR run tests unless the user explicitly asks.**
 
 ## Rules:
 1. **DO NOT** suggest pushing after making changes
 2. **DO NOT** say "ready to push" or similar phrases
 3. **DO NOT** ask if the user wants to push
 4. **DO NOT** mention pushing as a next step
-5. **ONLY** push when the user explicitly says:
+5. **DO NOT** automatically run tests after making changes
+6. **DO NOT** suggest running tests unless explicitly requested
+7. **ONLY** push when the user explicitly says:
    - "push"
    - "push to github"
    - "git push"
    - "commit and push"
+   - Or similar direct requests
+8. **ONLY** run tests when the user explicitly says:
+   - "run tests"
+   - "test"
+   - "run the tests"
+   - "check tests"
    - Or similar direct requests
 
 ## What to do instead:
 - Complete the requested changes
 - Confirm what was done
 - Wait for the user's next instruction
-- Let the user decide when to push
+- Let the user decide when to push or test
 
 ## Examples:
 ❌ "Changes complete! Ready to push to GitHub?"
 ❌ "Should I push these changes?"
 ❌ "Next step: push to GitHub"
+❌ "Let me run the tests to verify the changes"
+❌ "Should I test this?"
 
 ✅ "Changes complete! The files have been updated."
 ✅ "All modifications are done."
 ✅ Wait for user's next instruction
 
-**This rule overrides any other suggestions about version control.**
+**This rule overrides any other suggestions about version control and testing.**

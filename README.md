@@ -78,6 +78,10 @@ The frontend JS uses same-origin relative paths, so it runs identically on local
 - Chart generators:
   - `code/leaderboard.py <game>` → `web/<game>_leaderboard.png`
   - `code/graph.py <csv...>` → `web/<game>_ratings_progress.png`
+- **Player Images**: 
+  - Individual photos: `web/images/players/<player>.png`
+  - Default fallback: `web/images/players/default.png` (used when player image missing)
+  - Medal icons: `web/images/medals/1st.png`, `2nd.png`, `3rd.png`
 
 ## Operations
 

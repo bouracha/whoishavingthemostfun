@@ -119,3 +119,15 @@ class TestPlayerManagement:
                 ]
                 # Verify the path construction logic was called correctly
                 assert mock_exists.call_count >= 1
+
+    def test_default_player_image_exists(self):
+        """Test that default player image exists for fallback."""
+        import os
+        from pathlib import Path
+        
+        # Check that default.png exists in the players directory
+        default_image_path = Path("web/images/players/default.png")
+        assert default_image_path.exists(), "Default player image should exist"
+        
+        # Check that it's a reasonable file size (not empty)
+        assert default_image_path.stat().st_size > 1000, "Default image should not be empty"
