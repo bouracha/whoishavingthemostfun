@@ -106,21 +106,16 @@ if all_times:
     
     # Count total games across all players
     total_games = 0
-    print("DEBUG: Counting games in player_data:")
     for player, (times, ratings, starting_rating) in player_data.items():
         # The times list already excludes "beginning of time", so count all timestamps
-        player_games = len(times)
-        total_games += player_games
-        print(f"DEBUG: {player}: {len(times)} timestamps, {player_games} games")
+        total_games += len(times)
     
-    print(f"DEBUG: Total game entries before division: {total_games}")
     # Since each game involves 2 players, divide by 2 to get actual number of games
     total_games = total_games // 2
-    print(f"DEBUG: Total games after division: {total_games}")
     
     plt.xlabel("Time")
     plt.title(f"{game_type} ({total_games} total games)")
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
     
     # Define a nice color palette
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
