@@ -42,6 +42,21 @@ def serve_static(filename):
     """Serve static files from web directory"""
     return send_from_directory(WEB_DIR, filename)
 
+@app.route('/chess')
+def serve_chess():
+    """Serve chess page with clean URL"""
+    return send_from_directory(WEB_DIR, 'chess.html')
+
+@app.route('/pingpong')
+def serve_pingpong():
+    """Serve ping pong page with clean URL"""
+    return send_from_directory(WEB_DIR, 'pingpong.html')
+
+@app.route('/backgammon')
+def serve_backgammon():
+    """Serve backgammon page with clean URL"""
+    return send_from_directory(WEB_DIR, 'backgammon.html')
+
 @app.route('/api/players/<game>', methods=['GET'])
 def get_players(game):
     """Get list of players for a specific game"""
