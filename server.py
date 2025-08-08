@@ -129,6 +129,67 @@ def regenerate_charts(game):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/results/<game>', methods=['POST'])
+def submit_result(game):
+    """Submit a game result"""
+    try:
+        data = request.get_json()
+        player1 = data.get('player1', '').strip()
+        player2 = data.get('player2', '').strip()
+        result = data.get('result', '')  # '1-0', '0-1', or '1/2-1/2'
+        
+        if not player1 or not player2:
+            return jsonify({'error': 'Both players are required'}), 400
+        
+        if player1 == player2:
+            return jsonify({'error': 'Players must be different'}), 400
+        
+        if result not in ['1-0', '0-1', '1/2-1/2']:
+            return jsonify({'error': 'Invalid result format'}), 400
+        
+        # Convert result to score for main.py
+        if result == '1-0':
+            score = 1.0
+        elif result == '0-1':
+            score = 0.0
+        else:  # 1/2-1/2
+            score = 0.5
+        
+        # Change to code directory for script execution
+        original_cwd = os.getcwd()
+        os.chdir(CODE_DIR)
+        
+        try:
+            # Call main.py with the game result
+            subprocess.run([
+                sys.executable, 'main.py',
+                '--game', game,
+                '--player1', player1,
+                '--player2', player2,
+                '--score', str(score)
+            ], check=True, capture_output=True, text=True)
+            
+            # Generate updated charts
+            generate_charts(game)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Result submitted: {player1} vs {player2} ({result})',
+                'game': game,
+                'player1': player1,
+                'player2': player2,
+                'result': result
+            })
+            
+        except subprocess.CalledProcessError as e:
+            return jsonify({'error': f'Failed to submit result: {e.stderr}'}), 500
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 def generate_charts(game):
     """Generate leaderboard and ratings progress charts for a game"""
     try:

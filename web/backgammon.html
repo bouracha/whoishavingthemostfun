@@ -146,6 +146,7 @@
     
     <div class="player-management">
         <button class="add-player-btn" onclick="openAddPlayerModal()">➕ Add Player</button>
+        <button class="add-player-btn" onclick="openAddResultModal()">🏆 Add Result</button>
         <div id="statusMessage" class="status-message"></div>
     </div>
     
@@ -171,6 +172,48 @@
             <div class="modal-buttons">
                 <button class="modal-btn confirm" onclick="addPlayer()">Add Player</button>
                 <button class="modal-btn cancel" onclick="closeAddPlayerModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Result Modal -->
+    <div id="addResultModal" class="modal">
+        <div class="modal-content">
+            <h3>Add Backgammon Game Result</h3>
+            <div style="display: flex; gap: 10px; margin: 15px 0;">
+                <div style="flex: 1;">
+                    <label for="player1Select">Player 1:</label>
+                    <select id="player1Select" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        <option value="">Select Player 1</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label for="player2Select">Player 2:</label>
+                    <select id="player2Select" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        <option value="">Select Player 2</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin: 15px 0;">
+                <label>Result:</label>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="radio" name="result" value="1-0" id="result1-0">
+                        <span>1-0 (Player 1 wins)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="radio" name="result" value="1/2-1/2" id="result1/2-1/2">
+                        <span>1/2-1/2 (Draw)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="radio" name="result" value="0-1" id="result0-1">
+                        <span>0-1 (Player 2 wins)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn confirm" onclick="submitResult()">Submit Result</button>
+                <button class="modal-btn cancel" onclick="closeAddResultModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -331,11 +374,139 @@
             document.getElementById('statusMessage').style.display = 'none';
         }
 
-        // Close modal when clicking outside
+        // Add Result Modal Functions
+        function openAddResultModal() {
+            document.getElementById('addResultModal').style.display = 'block';
+            loadPlayers();
+        }
+
+        function closeAddResultModal() {
+            document.getElementById('addResultModal').style.display = 'none';
+            resetResultForm();
+            hideStatusMessage();
+        }
+
+        function loadPlayers() {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const apiUrl = isLocal 
+                ? 'http://localhost:8080/api/players/backgammon'
+                : '/api/players/backgammon';
+            
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const player1Select = document.getElementById('player1Select');
+                    const player2Select = document.getElementById('player2Select');
+                    
+                    // Clear existing options except the first placeholder
+                    player1Select.innerHTML = '<option value="">Select Player 1</option>';
+                    player2Select.innerHTML = '<option value="">Select Player 2</option>';
+                    
+                    // Add player options
+                    data.players.forEach(player => {
+                        const option1 = document.createElement('option');
+                        option1.value = player;
+                        option1.textContent = player;
+                        player1Select.appendChild(option1);
+                        
+                        const option2 = document.createElement('option');
+                        option2.value = player;
+                        option2.textContent = player;
+                        player2Select.appendChild(option2);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading players:', error);
+                    showStatusMessage('Failed to load players', 'error');
+                });
+        }
+
+        function resetResultForm() {
+            document.getElementById('player1Select').value = '';
+            document.getElementById('player2Select').value = '';
+            document.querySelectorAll('input[name="result"]').forEach(radio => {
+                radio.checked = false;
+            });
+        }
+
+        function submitResult() {
+            const player1 = document.getElementById('player1Select').value;
+            const player2 = document.getElementById('player2Select').value;
+            const result = document.querySelector('input[name="result"]:checked')?.value;
+            
+            if (!player1 || !player2) {
+                showStatusMessage('Please select both players', 'error');
+                return;
+            }
+            
+            if (player1 === player2) {
+                showStatusMessage('Players must be different', 'error');
+                return;
+            }
+            
+            if (!result) {
+                showStatusMessage('Please select a result', 'error');
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = document.querySelector('#addResultModal .modal-btn.confirm');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.disabled = true;
+
+            // Determine API URL
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const apiUrl = isLocal 
+                ? 'http://localhost:8080/api/results/backgammon'
+                : '/api/results/backgammon';
+            
+            // Submit result
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    player1: player1,
+                    player2: player2,
+                    result: result
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatusMessage(`Result submitted: ${player1} vs ${player2} (${result})`, 'success');
+                    setTimeout(() => {
+                        closeAddResultModal();
+                        // Refresh the charts
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showStatusMessage(data.error || 'Failed to submit result', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showStatusMessage('Network error. Make sure the server is running.', 'error');
+            })
+            .finally(() => {
+                // Restore button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            });
+        }
+
+        // Close modals when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('addPlayerModal');
-            if (event.target === modal) {
+            const addPlayerModal = document.getElementById('addPlayerModal');
+            const addResultModal = document.getElementById('addResultModal');
+            
+            if (event.target === addPlayerModal) {
                 closeAddPlayerModal();
+            }
+            if (event.target === addResultModal) {
+                closeAddResultModal();
             }
         }
 
