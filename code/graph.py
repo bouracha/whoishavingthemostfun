@@ -75,9 +75,19 @@ first_arg = sys.argv[1]
 if '/database/' in first_arg:
     # Extract game type from database path
     game_type = first_arg.split('/database/')[1].split('/')[0].title()
+elif 'database' in first_arg:
+    # Handle case where we're already in the database directory
+    # Extract the game type from the path: database/chess/player.csv -> chess
+    path_parts = first_arg.split('/')
+    if len(path_parts) >= 2:
+        game_type = path_parts[1].title()  # Get the game name (chess, pingpong, etc.)
+    else:
+        game_type = "Unknown"
 else:
     # Fallback to original logic
     game_type = first_arg.split('/')[0].title()
+
+
 
 # Plot all data
 if all_times:
