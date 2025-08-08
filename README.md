@@ -48,7 +48,13 @@ whoishavingthemostfun/
   code/                # Python logic, charts, and utilities
     manage_players.py  # Backend-only player management (list/delete)
   database/            # CSV files per game/player (not tracked by git)
+  tests/               # Comprehensive test suite
+    unit/              # Unit tests (ELO calculations, player management)
+    integration/       # API and chart generation tests
+    manual/            # Manual testing checklists (frontend, deployment)
+    fixtures/          # Test data and sample CSV files
   server.py            # Flask API and static server (dev)
+  run_tests.sh         # Local test runner script
   SERVER_README.md     # Production deployment/runbook
   README.md            # You are here
 ```
@@ -87,6 +93,13 @@ cd code
 python3 manage_players.py list <game>
 echo "<player>" | python3 manage_players.py delete <game> <player>
 ```
+
+## Testing
+
+- Run all tests: `./run_tests.sh`
+- Run specific test types: `./run_tests.sh unit|integration|coverage|lint|security`
+- Manual testing: Follow checklists in `tests/manual/`
+- CI/CD: Tests run automatically on GitHub Actions
 
 ## Configuration & Constants
 

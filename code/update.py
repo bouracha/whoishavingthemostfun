@@ -26,9 +26,9 @@ def update(rating1, rating2, score, K: int = 40):
     rating_change1 = (score1 - prob_of_1_winning) * K
     rating_change2 = (score2 - prob_of_2_winning) * K
 
-    if np.abs(rating_change1) < 1:
+    if np.abs(rating_change1) < 1 and rating_change1 != 0:
         rating_change1 = rating_change1/np.abs(rating_change1)
-    if np.abs(rating_change2) < 1:
+    if np.abs(rating_change2) < 1 and rating_change2 != 0:
         rating_change2 = rating_change2/np.abs(rating_change2)
 
     newRating1 = rating1 + rating_change1
