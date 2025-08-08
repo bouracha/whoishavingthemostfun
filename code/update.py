@@ -118,8 +118,11 @@ def delete_last_entry(game, players):
         game (str): The game name (e.g., 'chess', 'pingpong')
         players (list): List of player names to delete last entry for
     """
+    # Determine the correct path (database/ or ../database/)
+    database_path = "database" if os.path.exists("database") else "../database"
+    
     for player in players:
-        file_path = f"../database/{game}/{player}.csv"
+        file_path = f"{database_path}/{game}/{player}.csv"
         
         if not os.path.exists(file_path):
             print(f"Warning: Player '{player}' file not found for game '{game}'")
