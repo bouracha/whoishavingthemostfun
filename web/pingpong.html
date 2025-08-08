@@ -457,12 +457,12 @@
                     data.players.forEach(player => {
                         const option1 = document.createElement('option');
                         option1.value = player;
-                        option1.textContent = player;
+                        option1.textContent = player.charAt(0).toUpperCase() + player.slice(1);
                         player1Select.appendChild(option1);
                         
                         const option2 = document.createElement('option');
                         option2.value = player;
-                        option2.textContent = player;
+                        option2.textContent = player.charAt(0).toUpperCase() + player.slice(1);
                         player2Select.appendChild(option2);
                     });
                 })
