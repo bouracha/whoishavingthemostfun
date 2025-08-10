@@ -70,21 +70,28 @@ for i in range(1, len(sys.argv)):
   all_labels.extend([label] * len(times))
   player_data[label] = (times, ratings, starting_rating)
 
-# Determine game type from the first argument (do this before the conditional)
+# Determine game and optional team from the first argument
 first_arg = sys.argv[1]
+team_name = None
 if '/database/' in first_arg:
-    # Extract game type from database path
-    game_type = first_arg.split('/database/')[1].split('/')[0].title()
+    parts = first_arg.split('/database/')[1].split('/')
+    if len(parts) >= 2 and parts[0] not in ['chess', 'pingpong', 'backgammon']:
+        # Expect path like team/game/player.csv
+        team_name = parts[0]
+        game_type = parts[1].title()
+    else:
+        game_type = parts[0].title()
 elif 'database' in first_arg:
-    # Handle case where we're already in the database directory
-    # Extract the game type from the path: database/chess/player.csv -> chess
     path_parts = first_arg.split('/')
-    if len(path_parts) >= 2:
-        game_type = path_parts[1].title()  # Get the game name (chess, pingpong, etc.)
+    if len(path_parts) >= 3 and path_parts[1] not in ['chess', 'pingpong', 'backgammon']:
+        team_name = path_parts[1]
+        game_type = path_parts[2].title()
+    elif len(path_parts) >= 2:
+        game_type = path_parts[1].title()
     else:
         game_type = "Unknown"
 else:
-    # Fallback to original logic
+    # Fallback
     game_type = first_arg.split('/')[0].title()
 
 
@@ -166,9 +173,9 @@ if all_times:
             
             # Convert to matplotlib dates
             mpl_times = [mdates.date2num(t) for t in times_with_end]
-            # Extract just the player name from the label (remove path) and capitalize
+            # Extract just the player name from the label (remove path) and format properly
             player_name = label.split('/')[-1] if '/' in label else label
-            player_name = player_name.capitalize()
+            player_name = player_name.replace('_', ' ').title()
             
             # Plot the line first (make inactive players more transparent)
             alpha = 0.7 if is_inactive else 1.0
@@ -199,7 +206,14 @@ if all_times:
         if not player_has_games:  # Only plot if player has no games
             # Get their last rating from the CSV file
             try:
-                data = pd.read_csv(f"../database/chess/{player}.csv")
+                # Determine base database directory depending on runtime
+                base_db = 'database' if os.path.exists('database') else '../database'
+                # Use detected game and optional team
+                if team_name:
+                    player_csv = f"{base_db}/{team_name}/{game_type.lower()}/{player}.csv"
+                else:
+                    player_csv = f"{base_db}/{game_type.lower()}/{player}.csv"
+                data = pd.read_csv(player_csv)
                 last_rating = data['rating'].iloc[-1]  # Get the last rating entry
             except:
                 last_rating = 1200.0  # Default if file doesn't exist or is empty
@@ -220,13 +234,13 @@ if all_times:
             
             # Add player name at a smart position along the line
             if len(mpl_times) > 0:
-                # Find position for the name based on player index
-                best_x, best_y = find_name_position(mpl_times, ratings_flat, player_index, total_players, mdates.date2num(time_center))
-                if best_x is not None:
-                    # Place text above the line with vertical offset
-                    plt.annotate(player.capitalize(), xy=(best_x, best_y), xytext=(5, 15), 
-                               textcoords='offset points', fontsize=20, fontweight='bold',
-                               color=color, alpha=0.7, ha='left', va='bottom')
+                # Place text roughly at the center
+                mid_index = len(mpl_times)//2
+                best_x, best_y = mpl_times[mid_index], ratings_flat[mid_index]
+                display_name = player.replace('_', ' ').title()
+                plt.annotate(display_name, xy=(best_x, best_y), xytext=(5, 15), 
+                           textcoords='offset points', fontsize=20, fontweight='bold',
+                           color=color, alpha=0.7, ha='left', va='bottom')
                 player_index += 1
             inactive_count += 1
 
@@ -243,14 +257,21 @@ plt.title(current_title, fontsize=16, fontweight='bold', pad=20)
 # Add some padding and improve layout
 plt.tight_layout()
 
-# Save with high quality in web folder with game name
+# Save with high quality in web folder with game name, optionally under team directory
 # Determine the correct output path based on where we're running from
+game_file = f'{game_type.lower()}_ratings_progress.png'
 if os.path.exists('web'):
-    # Running from root directory (deployment context)
-    output_file = f'web/{game_type.lower()}_ratings_progress.png'
+    if team_name:
+        os.makedirs(f'web/{team_name}', exist_ok=True)
+        output_file = f'web/{team_name}/{game_file}'
+    else:
+        output_file = f'web/{game_file}'
 else:
-    # Running from code directory (command line context)
-    output_file = f'../web/{game_type.lower()}_ratings_progress.png'
+    if team_name:
+        os.makedirs(f'../web/{team_name}', exist_ok=True)
+        output_file = f'../web/{team_name}/{game_file}'
+    else:
+        output_file = f'../web/{game_file}'
 
 plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
 plt.close()  # Close the figure to free memory

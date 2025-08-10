@@ -287,7 +287,7 @@
     </style>
 </head>
 <body>
-    <a href="./" class="home-button">🏠 Home</a>
+    <a href="#" id="homeButton" class="home-button">🏠 Home</a>
     
     <div class="action-panel">
         <h3>🎲 Backgammon Management</h3>
@@ -377,17 +377,27 @@
     </div>
 
     <script>
+        function getContext() {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            let team = null;
+            if (parts.length >= 3 && parts[0] === 't') { team = parts[1]; }
+            return { isLocal, team, game: 'backgammon' };
+        }
+
         function showLeaderboard() {
             const placeholder = document.getElementById('placeholder');
             const image = document.getElementById('displayImage');
+            const { team } = getContext();
+            const src = team ? `/api/${team}/charts/backgammon/leaderboard.png` : 'backgammon_leaderboard.png';
             
             // Check if leaderboard image exists
-            fetch('backgammon_leaderboard.png')
+            fetch(src)
                 .then(response => {
                     if (response.ok) {
                         placeholder.style.display = 'none';
                         image.style.display = 'block';
-                        image.src = 'backgammon_leaderboard.png';
+                        image.src = src;
                         image.alt = 'Backgammon Leaderboard';
                     } else {
                         placeholder.style.display = 'block';
@@ -416,14 +426,16 @@
         function showRatings() {
             const placeholder = document.getElementById('placeholder');
             const image = document.getElementById('displayImage');
+            const { team } = getContext();
+            const src = team ? `/api/${team}/charts/backgammon/ratings_progress.png` : 'backgammon_ratings_progress.png';
             
             // Check if ratings image exists
-            fetch('backgammon_ratings_progress.png')
+            fetch(src)
                 .then(response => {
                     if (response.ok) {
                         placeholder.style.display = 'none';
                         image.style.display = 'block';
-                        image.src = 'backgammon_ratings_progress.png';
+                        image.src = src;
                         image.alt = 'Backgammon Ratings Progress';
                     } else {
                         placeholder.style.display = 'block';
@@ -481,11 +493,9 @@
             addBtn.disabled = true;
 
             // Determine API URL based on where we're running
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            
-            const apiUrl = isLocal 
-                ? 'http://localhost:8080/api/players/backgammon'
-                : '/api/players/backgammon'; // Same domain - works perfectly with HTTPS!
+            const { isLocal, team } = getContext();
+            const base = isLocal ? 'http://localhost:8080' : '';
+            const apiUrl = team ? `${base}/api/${team}/players/backgammon` : `${base}/api/players/backgammon`; // Same domain - works perfectly with HTTPS!
             
             // Make API call to add player
             fetch(apiUrl, {
@@ -545,10 +555,9 @@
         }
 
         function loadPlayers() {
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const apiUrl = isLocal 
-                ? 'http://localhost:8080/api/players/backgammon'
-                : '/api/players/backgammon';
+            const { isLocal, team } = getContext();
+            const base = isLocal ? 'http://localhost:8080' : '';
+            const apiUrl = team ? `${base}/api/${team}/players/backgammon` : `${base}/api/players/backgammon`;
             
             fetch(apiUrl)
                 .then(response => response.json())
@@ -562,14 +571,17 @@
                     
                     // Add player options
                     data.players.forEach(player => {
+                        // Format player name: replace underscores with spaces and title case
+                        const displayName = player.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        
                         const option1 = document.createElement('option');
                         option1.value = player;
-                        option1.textContent = player.charAt(0).toUpperCase() + player.slice(1);
+                        option1.textContent = displayName;
                         player1Select.appendChild(option1);
                         
                         const option2 = document.createElement('option');
                         option2.value = player;
-                        option2.textContent = player.charAt(0).toUpperCase() + player.slice(1);
+                        option2.textContent = displayName;
                         player2Select.appendChild(option2);
                     });
                 })
@@ -614,10 +626,9 @@
             submitBtn.disabled = true;
 
             // Determine API URL
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const apiUrl = isLocal 
-                ? 'http://localhost:8080/api/results/backgammon'
-                : '/api/results/backgammon';
+            const { isLocal, team } = getContext();
+            const base = isLocal ? 'http://localhost:8080' : '';
+            const apiUrl = team ? `${base}/api/${team}/results/backgammon` : `${base}/api/results/backgammon`;
             
             // Submit result
             fetch(apiUrl, {
@@ -675,8 +686,13 @@
             }
         });
 
-        // Show leaderboard by default
-        showLeaderboard();
+        // Show leaderboard by default and set home button
+        window.addEventListener('load', () => {
+            const { team } = getContext();
+            const homeButton = document.getElementById('homeButton');
+            homeButton.href = team ? `/t/${team}` : '/';
+            showLeaderboard();
+        });
     </script>
 </body>
 </html> 

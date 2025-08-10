@@ -78,6 +78,79 @@
             margin: 20px 0;
             border-radius: 10px;
         }
+        .recent-results {
+            margin: 30px 0;
+            text-align: left;
+        }
+        .recent-results h3 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .result-item {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-info {
+            flex: 1;
+        }
+        .result-players {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+        .result-details {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .result-commentary {
+            font-size: 13px;
+            color: #4CAF50;
+            margin-top: 8px;
+            font-style: italic;
+            line-height: 1.3;
+        }
+        .inline-probability {
+            background-color: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            font-style: normal;
+        }
+        .result-probability {
+            background-color: #f0f0f0;
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 120px;
+            border: 2px solid #ddd;
+        }
+        .result-probability .favorite {
+            color: #2E7D32;
+            font-weight: bold;
+        }
+        .result-probability .underdog {
+            color: #D32F2F;
+            font-weight: bold;
+        }
+        .no-results {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -91,13 +164,25 @@
                 <strong>⚠️ Server Offline:</strong> The rating server is currently offline. You can still view existing charts, but adding new players is temporarily unavailable.
             </div>
         
-        <div>
+        <div id="gameButtons">
             <a href="/chess" class="game-button chess">Chess</a>
             <a href="/backgammon" class="game-button backgammon">Backgammon</a>
             <a href="/pingpong" class="game-button pingpong">Ping Pong</a>
         </div>
+
+        <!-- Recent Results section (only shown for teams) -->
+        <div id="recentResults" class="recent-results" style="display: none;">
+            <h3>Recent Results</h3>
+            <div id="resultsContainer">
+                <!-- Results will be loaded here -->
+            </div>
+        </div>
+
+        <div style="margin-top:20px;">
+            <a href="/login" class="game-button" style="background:#6c757d">Team Login</a>
+        </div>
         
-        <img src="images/monica.png" alt="Monica" class="monica-image">
+        <!-- Monica image removed for team homepage -->
     </div>
     
     <script>
@@ -125,10 +210,103 @@
             return false;
         }
         
-        // Check server status when page loads
+
+
+        // Load recent results for a team or main homepage
+        async function loadRecentResults(team) {
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = team 
+                    ? (isLocal ? `http://localhost:8080/api/${team}/recent-results` : `/api/${team}/recent-results`)
+                    : (isLocal ? `http://localhost:8080/api/recent-results` : `/api/recent-results`);
+                
+                const response = await fetch(apiUrl, { credentials: 'include' });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const resultsContainer = document.getElementById('resultsContainer');
+                
+                if (data.results && data.results.length > 0) {
+                    resultsContainer.innerHTML = data.results.map(result => `
+                        <div class="result-item">
+                            <div class="result-info">
+                                <div class="result-players">
+                                    ${result.player1} vs ${result.player2} (${result.result})
+                                </div>
+                                <div class="result-details">
+                                    ${result.game} • ${result.timestamp}
+                                </div>
+                                <div class="result-commentary">
+                                    ${result.commentary || 'No commentary available'}
+                                </div>
+                            </div>
+                            <div class="result-probability">
+                                <div class="${result.probability >= 0.5 ? 'favorite' : 'underdog'}">P(${result.player1}): ${(result.probability * 100).toFixed(1)}%</div>
+                                <div class="${result.probability < 0.5 ? 'favorite' : 'underdog'}" style="margin-top: 3px;">P(${result.player2}): ${((1 - result.probability) * 100).toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsContainer.innerHTML = '<div class="no-results">No recent results yet. Start playing some games!</div>';
+                }
+                
+                // Show the results section
+                document.getElementById('recentResults').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading recent results:', error);
+                const resultsContainer = document.getElementById('resultsContainer');
+                resultsContainer.innerHTML = '<div class="no-results">Unable to load recent results</div>';
+            }
+        }
+
+        // Check server status when page loads and update team-specific links
         window.addEventListener('load', () => {
             checkServerStatus();
+            
+            // Check if we're in a team context (URL like /t/team)
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            if (parts.length >= 2 && parts[0] === 't') {
+                const team = parts[1];
+                // Update game button links to be team-specific
+                const gameButtons = document.getElementById('gameButtons');
+                gameButtons.innerHTML = `
+                    <a href="/t/${team}/chess" class="game-button chess">Chess</a>
+                    <a href="/t/${team}/backgammon" class="game-button backgammon">Backgammon</a>
+                    <a href="/t/${team}/pingpong" class="game-button pingpong">Ping Pong</a>
+                `;
+                
+                // Add logout button and team info
+                const loginSection = document.querySelector('div[style*="margin-top:20px"]');
+                loginSection.innerHTML = `
+                    <div style="margin-bottom: 15px; color: #666; font-size: 14px;">
+                        Logged in as team: <strong>${team.charAt(0).toUpperCase() + team.slice(1)}</strong>
+                    </div>
+                    <button onclick="logout()" class="game-button" style="background:#dc3545">Logout</button>
+                `;
+                
+                // Load recent results for this team
+                loadRecentResults(team);
+            } else {
+                // Load recent results for main homepage (non-team context)
+                loadRecentResults(null);
+            }
         });
+        
+        async function logout() {
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const url = isLocal ? 'http://localhost:8080/api/auth/logout' : '/api/auth/logout';
+                await fetch(url, { method: 'POST', credentials: 'include' });
+            } catch (e) {
+                console.error('Logout error:', e);
+            }
+            // Redirect to main page regardless of logout success
+            window.location.href = '/';
+        }
     </script>
 </body>
 </html>
