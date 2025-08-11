@@ -1,4 +1,6 @@
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend to reduce memory usage
 import matplotlib.pyplot as plt
 import sys
 import numpy as np
@@ -6,11 +8,15 @@ import datetime
 import os
 
 # Set up matplotlib for better looking plots
-plt.style.use('seaborn-v0_8')
+try:
+    plt.style.use('seaborn-v0_8')
+except:
+    plt.style.use('default')  # Fallback for older matplotlib versions
 plt.rcParams['figure.figsize'] = (12, 8)
 plt.rcParams['font.size'] = 12
 plt.rcParams['axes.grid'] = True
 plt.rcParams['grid.alpha'] = 0.3
+plt.rcParams['figure.dpi'] = 72  # Lower DPI to reduce memory usage
 
 def get_middle_rating(times, ratings):
     """Get the rating at the middle of the time series"""
