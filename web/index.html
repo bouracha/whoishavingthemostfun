@@ -151,6 +151,34 @@
             font-style: italic;
             padding: 20px;
         }
+        .undo-button {
+            background-color: #dc3545;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+        .undo-button:hover {
+            background-color: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .undo-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .result-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -175,7 +203,7 @@
         </div>
 
         <!-- Recent Results section -->
-        <div id="recentResults" class="recent-results" style="display: none;">
+        <div id="recentResults" class="recent-results">
             <h3>Recent Results</h3>
             <div id="resultsContainer">
                 <!-- Results will be loaded here -->
@@ -230,7 +258,7 @@
                 const resultsContainer = document.getElementById('resultsContainer');
                 
                 if (data.results && data.results.length > 0) {
-                    resultsContainer.innerHTML = data.results.map(result => `
+                    resultsContainer.innerHTML = data.results.map((result, index) => `
                         <div class="result-item">
                             <div class="result-info">
                                 <div class="result-players">
@@ -243,9 +271,12 @@
                                     ${result.commentary || 'No commentary available'}
                                 </div>
                             </div>
-                            <div class="result-probability">
-                                <div class="${result.probability >= 0.5 ? 'favorite' : 'underdog'}">P(${result.player1}): ${(result.probability * 100).toFixed(1)}%</div>
-                                <div class="${result.probability < 0.5 ? 'favorite' : 'underdog'}" style="margin-top: 3px;">P(${result.player2}): ${((1 - result.probability) * 100).toFixed(1)}%</div>
+                            <div class="result-actions">
+                                <div class="result-probability">
+                                    <div class="${result.probability >= 0.5 ? 'favorite' : 'underdog'}">P(${result.player1}): ${(result.probability * 100).toFixed(1)}%</div>
+                                    <div class="${result.probability < 0.5 ? 'favorite' : 'underdog'}" style="margin-top: 3px;">P(${result.player2}): ${((1 - result.probability) * 100).toFixed(1)}%</div>
+                                </div>
+                                ${index === 0 ? `<button class="undo-button" onclick="undoLastResult('${team || ''}')">↶ Undo</button>` : ''}
                             </div>
                         </div>
                     `).join('');
@@ -253,8 +284,7 @@
                     resultsContainer.innerHTML = '<div class="no-results">No recent results yet. Start playing some games!</div>';
                 }
                 
-                // Show the results section (always show for both team and main homepage)
-                document.getElementById('recentResults').style.display = 'block';
+                // Results section is always visible now
                 
             } catch (error) {
                 console.error('Error loading recent results:', error);
@@ -306,6 +336,61 @@
             }
             // Redirect to main page regardless of logout success
             window.location.href = '/';
+        }
+        
+        async function undoLastResult(team) {
+            if (!confirm('Are you sure you want to undo the last result? This action cannot be reversed.')) {
+                return;
+            }
+            
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = team 
+                    ? (isLocal ? `http://localhost:8080/api/${team}/undo-last-result` : `/api/${team}/undo-last-result`)
+                    : (isLocal ? `http://localhost:8080/api/undo-last-result` : `/api/undo-last-result`);
+                
+                // Disable all undo buttons during the operation
+                const undoButtons = document.querySelectorAll('.undo-button');
+                undoButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.textContent = 'Undoing...';
+                });
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    setTimeout(() => {
+                        // Refresh the charts
+                        location.reload();
+                    }, 1500);
+                } else {
+                    alert(`❌ Error: ${data.error}`);
+                    // Re-enable buttons
+                    undoButtons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.textContent = '↶ Undo';
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error undoing result:', error);
+                alert('❌ Failed to undo result. Please try again.');
+                // Re-enable buttons
+                const undoButtons = document.querySelectorAll('.undo-button');
+                undoButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.textContent = '↶ Undo';
+                });
+            }
         }
     </script>
 </body>

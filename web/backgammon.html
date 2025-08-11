@@ -389,7 +389,8 @@
             const placeholder = document.getElementById('placeholder');
             const image = document.getElementById('displayImage');
             const { team } = getContext();
-            const src = team ? `/api/${team}/charts/backgammon/leaderboard.png` : 'backgammon_leaderboard.png';
+            const baseSrc = team ? `/api/${team}/charts/backgammon/leaderboard.png` : 'backgammon_leaderboard.png';
+            const src = `${baseSrc}?t=${Date.now()}`;
             
             // Check if leaderboard image exists
             fetch(src)
@@ -427,7 +428,8 @@
             const placeholder = document.getElementById('placeholder');
             const image = document.getElementById('displayImage');
             const { team } = getContext();
-            const src = team ? `/api/${team}/charts/backgammon/ratings_progress.png` : 'backgammon_ratings_progress.png';
+            const baseSrc = team ? `/api/${team}/charts/backgammon/ratings_progress.png` : 'backgammon_ratings_progress.png';
+            const src = `${baseSrc}?t=${Date.now()}`;
             
             // Check if ratings image exists
             fetch(src)

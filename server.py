@@ -20,7 +20,7 @@ from datetime import timedelta
 sys.path.append(os.path.join(os.path.dirname(__file__), 'code'))
 
 # Import our existing functions
-from update import make_new_player, delete_last_entry
+from update import make_new_player, delete_last_entry, undo_last_result
 
 app = Flask(__name__)
 # Secret key for sessions (override via env in production)
@@ -720,6 +720,58 @@ def serve_team_game(team, game):
     if game == 'backgammon':
         return send_from_directory(WEB_DIR, 'backgammon.html')
     return jsonify({'error': 'Unknown game'}), 404
+
+@app.route('/api/undo-last-result', methods=['POST'])
+def undo_last_result_main():
+    """Undo the last result from the main database"""
+    try:
+        result = undo_last_result(team=None)
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': result['message'],
+                'undone_result': result['undone_result']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/api/<team>/undo-last-result', methods=['POST'])
+def undo_last_result_team(team):
+    """Undo the last result from a specific team's database"""
+    try:
+        # Validate team access
+        assert_team_access(team)
+        
+        result = undo_last_result(team=team)
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': result['message'],
+                'undone_result': result['undone_result']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 400
+    except PermissionError:
+        return jsonify({
+            'success': False,
+            'error': 'Forbidden: not logged into this team'
+        }), 403
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }), 500
 
 @app.route('/api/health')
 def health_check():

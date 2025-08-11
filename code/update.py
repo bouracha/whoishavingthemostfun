@@ -235,6 +235,115 @@ def delete_last_entry(game, players, team=None):
         except Exception as e:
             print(f"Error deleting last entry for player '{player}': {e}")
 
+def undo_last_result(team=None):
+    """
+    Undo the last result from the database by:
+    1. Reading the last result from results.csv
+    2. Extracting the two player names
+    3. Deleting that row from results.csv
+    4. Deleting the last row from each player's CSV file
+    
+    Args:
+        team (str): Optional team name. If None, uses main database.
+    
+    Returns:
+        dict: Result summary with success/error info and details of what was undone
+    """
+    try:
+        # Determine the correct path (database/ or ../database/)
+        database_path = "database" if os.path.exists("database") else "../database"
+        
+        # Determine results file path
+        if team:
+            results_file = f"{database_path}/{team}/results.csv"
+        else:
+            results_file = f"{database_path}/results.csv"
+        
+        # Check if results file exists
+        if not os.path.exists(results_file):
+            return {'error': f'No results file found at {results_file}'}
+        
+        # Read the results file
+        df = pd.read_csv(results_file)
+        
+        if df.empty:
+            return {'error': 'No results found to undo'}
+        
+        # Get the last result
+        last_result = df.iloc[-1]
+        timestamp = last_result['timestamp']
+        game = last_result['game']
+        player1 = last_result['player1']
+        player2 = last_result['player2']
+        result = last_result['result']
+        probability = last_result['probability']
+        
+        # Remove the last row from results.csv
+        df = df.iloc[:-1]
+        df.to_csv(results_file, index=False)
+        
+        # Delete the last entry from each player's CSV file
+        players_to_update = [player1, player2]
+        deleted_entries = []
+        
+        for player in players_to_update:
+            player_file = f"{database_path}/{team}/{game}/{player}.csv" if team else f"{database_path}/{game}/{player}.csv"
+            
+            if not os.path.exists(player_file):
+                print(f"Warning: Player '{player}' file not found for game '{game}'")
+                continue
+                
+            try:
+                # Read the player's CSV file
+                player_df = pd.read_csv(player_file)
+                
+                # Check if there are entries to delete (more than just the initial entry)
+                if len(player_df) <= 1:
+                    print(f"Warning: Player '{player}' has no game entries to delete (only initial rating remains)")
+                    continue
+                    
+                # Get the last entry details before deleting
+                last_entry = player_df.iloc[-1]
+                deleted_entries.append({
+                    'player': player,
+                    'rating': last_entry['rating'],
+                    'opponent': last_entry['opponent'],
+                    'result': last_entry['result'],
+                    'colour': last_entry['colour'],
+                    'timestamp': last_entry['timestamp']
+                })
+                
+                # Remove the last row (most recent game)
+                player_df = player_df.iloc[:-1]
+                
+                # Save the updated data back to the file
+                player_df.to_csv(player_file, index=False)
+                print(f"Deleted last entry for player '{player}' in game '{game}'")
+                
+            except Exception as e:
+                print(f"Error deleting last entry for player '{player}': {e}")
+                return {'error': f'Failed to delete entry for player {player}: {e}'}
+        
+        # Generate updated charts
+        generate_charts_backend(game, team)
+        
+        return {
+            'success': True,
+            'message': f'Successfully undone last result: {player1} vs {player2} ({result})',
+            'undone_result': {
+                'timestamp': timestamp,
+                'game': game,
+                'player1': player1,
+                'player2': player2,
+                'result': result,
+                'probability': probability
+            },
+            'deleted_entries': deleted_entries
+        }
+        
+    except Exception as e:
+        return {'error': f'Failed to undo last result: {e}'}
+
 def submit_game_with_charts(player1, player2, result, game, team=None, timestamp=None):
     """
     Submit a game result and automatically regenerate charts, exactly like the Flask API does.
@@ -321,16 +430,24 @@ def generate_charts_backend(game, team=None):
         else:
             game_dir = f"{db_path}/{game}"
         
+        # Determine the correct working directory for running scripts
+        if os.path.exists('code'):
+            # Running from root directory (server context)
+            script_cwd = 'code'
+        else:
+            # Running from code directory (command line context)
+            script_cwd = '.'
+        
         # Generate leaderboard
         try:
             if team:
                 subprocess.run([
                     sys.executable, 'leaderboard.py', f"{team}/{game}"
-                ], check=True, capture_output=True, text=True, cwd='.')
+                ], check=True, capture_output=True, text=True, cwd=script_cwd)
             else:
                 subprocess.run([
                     sys.executable, 'leaderboard.py', game
-                ], check=True, capture_output=True, text=True, cwd='.')
+                ], check=True, capture_output=True, text=True, cwd=script_cwd)
         except subprocess.CalledProcessError:
             # Leaderboard might fail if no players exist, that's okay
             pass
@@ -339,10 +456,17 @@ def generate_charts_backend(game, team=None):
         try:
             csv_files = list(Path(game_dir).glob('*.csv'))
             if csv_files:
-                csv_paths = [str(csv_file) for csv_file in csv_files]
+                # Adjust CSV paths based on the working directory we'll be running from
+                if script_cwd == 'code':
+                    # Running from code directory, so paths need to go up one level
+                    csv_paths = [f"../{csv_file}" for csv_file in csv_files]
+                else:
+                    # Running from root directory
+                    csv_paths = [str(csv_file) for csv_file in csv_files]
+                    
                 subprocess.run([
                     sys.executable, 'graph.py'
-                ] + csv_paths, check=True, capture_output=True, text=True, cwd='.')
+                ] + csv_paths, check=True, capture_output=True, text=True, cwd=script_cwd)
         except subprocess.CalledProcessError:
             # Graph might fail if no actual games played, that's okay
             pass
@@ -358,18 +482,29 @@ if __name__ == "__main__":
                        help='Completely delete player(s) and all their data')
     parser.add_argument('--new_player', action='store_true',
                        help='Create new player(s) for the specified game')
+    parser.add_argument('--undo_last_result', action='store_true',
+                       help='Undo the last result from the database (removes from results.csv and player files)')
     parser.add_argument('--starting_rating', type=float, default=1200.0,
                        help='Starting rating for new players (default: 1200)')
     parser.add_argument('--starting_timestamp', type=str, default=None,
                        help='Optional starting timestamp for new players, format YYYY-MM-DD HH:MM:SS')
     parser.add_argument('--team', type=str, default=None,
                        help='Team name (optional)')
-    parser.add_argument('game', type=str, help='Game name (e.g., chess, pingpong)')
-    parser.add_argument('players', nargs='+', help='Player names')
+    parser.add_argument('game', type=str, nargs='?', help='Game name (e.g., chess, pingpong) - not needed for undo_last_result')
+    parser.add_argument('players', nargs='*', help='Player names - not needed for undo_last_result')
     
     args = parser.parse_args()
     
-    if args.delete_last_entry:
+    if args.undo_last_result:
+        result = undo_last_result(team=args.team)
+        if result.get('success'):
+            print(f"✅ {result['message']}")
+            print(f"   Undone: {result['undone_result']['player1']} vs {result['undone_result']['player2']} ({result['undone_result']['result']})")
+            print(f"   Game: {result['undone_result']['game']}")
+            print(f"   Timestamp: {result['undone_result']['timestamp']}")
+        else:
+            print(f"❌ {result['error']}")
+    elif args.delete_last_entry:
         delete_last_entry(args.game, args.players, team=args.team)
     elif args.delete_player:
         for player in args.players:
@@ -385,12 +520,15 @@ if __name__ == "__main__":
             )
     else:
         print("Usage:")
+        print("  Undo last result: python3 update.py --undo_last_result [--team <team_name>]")
         print("  Create new player(s): python3 update.py --new_player <game> <player1> [player2] ...")
         print("                        [--starting_rating <rating>] [--starting_timestamp 'YYYY-MM-DD HH:MM:SS']")
         print("  Delete last entry: python3 update.py --delete_last_entry <game> <player1> [player2] ...")
         print("  Delete player(s): python3 update.py --delete_player <game> <player1> [player2] ...")
         print("")
         print("Examples:")
+        print("  python3 update.py --undo_last_result")
+        print("  python3 update.py --undo_last_result --team bourached")
         print("  python3 update.py --new_player chess anthony")
         print("  python3 update.py --new_player chess grandmaster --starting_rating 2500 --starting_timestamp '2023-01-01 12:00:00'")
         print("  python3 update.py --new_player pingpong gavin eve dean")
