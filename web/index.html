@@ -174,7 +174,7 @@
             <a href="/login" class="game-button" style="background:#6c757d">Team Login</a>
         </div>
 
-        <!-- Recent Results section (only shown for teams) -->
+        <!-- Recent Results section -->
         <div id="recentResults" class="recent-results" style="display: none;">
             <h3>Recent Results</h3>
             <div id="resultsContainer">
@@ -253,7 +253,7 @@
                     resultsContainer.innerHTML = '<div class="no-results">No recent results yet. Start playing some games!</div>';
                 }
                 
-                // Show the results section
+                // Show the results section (always show for both team and main homepage)
                 document.getElementById('recentResults').style.display = 'block';
                 
             } catch (error) {
