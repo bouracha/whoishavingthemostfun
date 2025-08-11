@@ -256,11 +256,17 @@ def create_leaderboard(game_folder, excluded_players=None, title=None):
         display_name = player.replace('_', ' ').title()
         ax.text(0.35, y_pos, display_name, fontsize=14, fontweight='bold', ha='left', va='center')
         
-        # Add player image (on the right side of the name) with dynamic sizing
-        add_player_image(ax, 0.65, y_pos, player, rating, i + 1, len(sorted_players))
+        # Add player image only for team contexts (not main homepage)
+        if '/' in game_folder:
+            # Team context - add player image
+            add_player_image(ax, 0.65, y_pos, player, rating, i + 1, len(sorted_players))
+            rating_x = 0.85
+        else:
+            # Main homepage - no player images to save memory
+            rating_x = 0.75
         
         # Add rating
-        ax.text(0.85, y_pos, f"{int(rating):>4d}", fontsize=14, fontweight='bold', ha='right', va='center')
+        ax.text(rating_x, y_pos, f"{int(rating):>4d}", fontsize=14, fontweight='bold', ha='right', va='center')
     
     # Set title
     # game_folder can be 'chess' or 'team/game'
