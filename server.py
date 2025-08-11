@@ -394,7 +394,8 @@ def get_recent_results_main():
             return jsonify({'results': []})
         
         # Sort by timestamp descending and get the 5 most recent
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        # Handle both timestamp formats (with and without microseconds)
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed')
         df_sorted = df.sort_values('timestamp', ascending=False).head(5)
         
         # Format results for frontend
@@ -445,7 +446,8 @@ def get_recent_results(team):
             return jsonify({'results': []})
         
         # Sort by timestamp descending and get the 5 most recent
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        # Handle both timestamp formats (with and without microseconds)
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed')
         df_sorted = df.sort_values('timestamp', ascending=False).head(5)
         
         # Format results for frontend
