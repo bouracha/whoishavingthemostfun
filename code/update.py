@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import argparse
 import os
+from typing import Optional
 
 def update(rating1, rating2, score, K: int = 40):
 
@@ -46,7 +47,7 @@ def write_new_rating(
     game='chess',
     colour='white',
     team=None,
-    timestamp: str | None = None,
+    timestamp: Optional[str] = None,
 ):
     """Append a rating row. Optional timestamp overrides the default of now.
 
@@ -83,9 +84,9 @@ def read_ratings(player1, player2, game='chess', team=None):
 def make_new_player(
     player_name: str = 'default',
     game: str = 'chess',
-    team: str | None = None,
+    team: Optional[str] = None,
     starting_rating: float = 1200.0,
-    starting_timestamp: str | None = None,
+    starting_timestamp: Optional[str] = None,
 ):
     import os
     
@@ -125,7 +126,7 @@ def make_new_player(
     else:
         print(f"Player '{player_name}' already exists for game '{game}' - skipping creation")
 
-def log_result_to_team(player1, player2, result, game, team, probability, timestamp: str | None = None):
+def log_result_to_team(player1, player2, result, game, team, probability, timestamp: Optional[str] = None):
     """
     Log a game result to the results.csv file for recent results display.
     Works for both team games and main database games.
