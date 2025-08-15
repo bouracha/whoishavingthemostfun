@@ -1,5 +1,6 @@
 // Shared functionality for all game pages
 let currentGame = '';
+let selectedResult = null;
 
 // Initialize the game page
 function initGamePage(gameName) {
@@ -71,6 +72,12 @@ function closeAddPlayerModal() {
 
 function openAddResultModal() {
     document.getElementById('addResultModal').style.display = 'block';
+    // Reset result selection
+    selectedResult = null;
+    const resultButtons = document.querySelectorAll('.result-btn');
+    if (resultButtons && resultButtons.length) {
+        resultButtons.forEach(btn => btn.classList.remove('selected'));
+    }
     loadPlayers();
 }
 
@@ -87,28 +94,30 @@ async function loadPlayers() {
         
         const response = await fetch(apiUrl, { credentials: 'include' });
         const data = await response.json();
-        
-        if (data.success) {
-            const player1Select = document.getElementById('player1Select');
-            const player2Select = document.getElementById('player2Select');
-            
-            // Clear existing options
-            player1Select.innerHTML = '<option value="">Select Player 1</option>';
-            player2Select.innerHTML = '<option value="">Select Player 2</option>';
-            
-            // Add player options
-            data.players.forEach(player => {
-                const option1 = document.createElement('option');
-                option1.value = player;
-                option1.textContent = player.replace('_', ' ').replace(' Q', ' -♛');
-                player1Select.appendChild(option1);
-                
-                const option2 = document.createElement('option');
-                option2.value = player;
-                option2.textContent = player.replace('_', ' ').replace(' Q', ' -♛');
-                player2Select.appendChild(option2);
-            });
-        }
+        const players = Array.isArray(data.players) ? data.players : [];
+
+        const player1Select = document.getElementById('player1Select');
+        const player2Select = document.getElementById('player2Select');
+
+        if (!player1Select || !player2Select) return;
+
+        // Clear existing options
+        player1Select.innerHTML = '<option value="">Select Player 1</option>';
+        player2Select.innerHTML = '<option value="">Select Player 2</option>';
+
+        // Add player options
+        players.forEach(player => {
+            const display = player.replace(/_/g, ' ').replace(' Q', ' -♛');
+            const option1 = document.createElement('option');
+            option1.value = player;
+            option1.textContent = display;
+            player1Select.appendChild(option1);
+
+            const option2 = document.createElement('option');
+            option2.value = player;
+            option2.textContent = display;
+            player2Select.appendChild(option2);
+        });
     } catch (error) {
         console.error('Error loading players:', error);
         showStatusMessage('Failed to load players', 'error');
@@ -167,7 +176,7 @@ async function addPlayer() {
 async function submitResult() {
     const player1 = document.getElementById('player1Select').value;
     const player2 = document.getElementById('player2Select').value;
-    const result = document.querySelector('input[name="result"]:checked')?.value;
+    const result = selectedResult;
     
     if (!player1 || !player2) {
         showStatusMessage('Please select both players', 'error');
@@ -227,6 +236,21 @@ async function submitResult() {
         // Restore button state
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
+    }
+}
+
+// Result selection via buttons
+function selectResult(result) {
+    selectedResult = result;
+    const resultButtons = document.querySelectorAll('.result-btn');
+    if (resultButtons && resultButtons.length) {
+        resultButtons.forEach(btn => {
+            if (btn.dataset.result === result) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
     }
 }
 

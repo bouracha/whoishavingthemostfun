@@ -218,6 +218,34 @@ img {
     margin: 0;
 }
 
+.result-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.result-btn {
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.result-btn:hover {
+    background-color: #e6e6e6;
+}
+
+.result-btn.selected {
+    background-color: #2196F3;
+    color: white;
+    border-color: #1976D2;
+}
+
 .modal-buttons {
     display: flex;
     gap: 15px;

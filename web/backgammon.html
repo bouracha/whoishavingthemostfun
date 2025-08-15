@@ -69,19 +69,10 @@
             </div>
             <div class="form-group">
                 <label>Result:</label>
-                <div class="radio-group">
-                    <label class="radio-option">
-                        <input type="radio" name="result" value="1-0">
-                        Player 1 Wins
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="result" value="0-1">
-                        Player 2 Wins
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="result" value="1/2-1/2">
-                        Draw
-                    </label>
+                <div class="result-buttons">
+                    <button type="button" class="result-btn" data-result="1-0" onclick="selectResult('1-0')">Player 1 Wins</button>
+                    <button type="button" class="result-btn" data-result="0-1" onclick="selectResult('0-1')">Player 2 Wins</button>
+                    <button type="button" class="result-btn" data-result="1/2-1/2" onclick="selectResult('1/2-1/2')">Draw</button>
                 </div>
             </div>
             <div class="modal-buttons">
