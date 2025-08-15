@@ -134,6 +134,12 @@ async function addPlayer() {
         showStatusMessage('Player name can only contain letters, numbers, and underscores', 'error');
         return;
     }
+
+    // Show loading state
+    const addBtn = document.querySelector('#addPlayerModal .modal-btn.confirm');
+    const originalText = addBtn.textContent;
+    addBtn.textContent = 'Adding Player...';
+    addBtn.disabled = true;
     
     try {
         const { isLocal, team } = getContext();
@@ -166,6 +172,10 @@ async function addPlayer() {
     } catch (error) {
         console.error('Error:', error);
         showStatusMessage('Network error. Make sure the server is running.', 'error');
+    } finally {
+        // Restore button state
+        addBtn.textContent = originalText;
+        addBtn.disabled = false;
     }
 }
 
