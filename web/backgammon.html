@@ -3,325 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <title>Backgammon Elo Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 20px;
-        }
-        .button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 10px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        .button:hover {
-            background-color: #45a049;
-        }
-        .button.active {
-            background-color: #2196F3;
-        }
-        .home-button {
-            background-color: #666;
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 14px;
-            margin: 10px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-            position: absolute;
-            top: 20px;
-            left: 20px;
-        }
-        .home-button:hover {
-            background-color: #555;
-        }
-        #imageContainer {
-            margin-top: 20px;
-        }
-        img {
-            max-width: 90%;
-            height: auto;
-        }
-        .placeholder {
-            font-size: 24px;
-            color: #666;
-            margin: 100px 0;
-        }
-        .main-content {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 30px;
-            margin: 20px auto;
-            max-width: 1200px;
-        }
-        
-        .action-panel {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 25px;
-            margin: 20px auto;
-            max-width: 1200px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .action-panel h3 {
-            margin: 0 0 20px 0;
-            color: #495057;
-            font-size: 18px;
-            text-align: center;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .add-player-btn {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-        }
-        
-        .add-player-btn:hover {
-            background: linear-gradient(135deg, #45a049, #3d8b40);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-        }
-        
-        .add-result-btn {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
-        }
-        
-        .add-result-btn:hover {
-            background: linear-gradient(135deg, #1976D2, #1565C0);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 300px;
-            text-align: center;
-        }
-        .modal input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .modal-buttons {
-            margin-top: 15px;
-        }
-        .modal-btn {
-            padding: 8px 16px;
-            margin: 0 5px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .modal-btn.confirm {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .modal-btn.cancel {
-            background-color: #f44336;
-            color: white;
-        }
-        .status-message {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-        }
-        .status-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        /* Beautiful radio button styling */
-        .radio-group {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        .radio-row {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .radio-option {
-            flex: 1;
-            min-width: 120px;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .radio-option.full-width {
-            flex: none;
-            width: 100%;
-        }
-        
-        .radio-option input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-        }
-        
-        .radio-option .radio-custom {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border: 2px solid #dee2e6;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            text-align: center;
-            min-height: 60px;
-        }
-        
-        .radio-option input[type="radio"]:checked + .radio-custom {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            border-color: #4CAF50;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-        }
-        
-        .radio-option:hover .radio-custom {
-            border-color: #4CAF50;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .radio-option span {
-            font-size: 14px;
-            font-weight: 500;
-            line-height: 1.3;
-        }
-        
-        /* Mobile responsive adjustments */
-        @media (max-width: 768px) {
-            .radio-group {
-                gap: 12px;
-            }
-            
-            .radio-row {
-                flex-direction: column;
-                gap: 12px;
-            }
-            
-            .radio-option {
-                min-width: auto;
-            }
-            
-            .radio-option.full-width {
-                width: auto;
-            }
-            
-            .radio-option .radio-custom {
-                padding: 16px 20px;
-                min-height: 70px;
-            }
-            
-            .radio-option span {
-                font-size: 16px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/game-styles.css">
 </head>
 <body>
-    <a href="#" id="homeButton" class="home-button">🏠 Home</a>
-    
-    <div class="action-panel">
-        <h3>🎲 Backgammon Management</h3>
-        <div class="action-buttons">
-            <button class="add-player-btn" onclick="openAddPlayerModal()">➕ Add Player</button>
-            <button class="add-result-btn" onclick="openAddResultModal()">🏆 Add Result</button>
-        </div>
-        <div id="statusMessage" class="status-message"></div>
-    </div>
+    <a href="/" class="home-button" id="homeButton">🏠 Home</a>
     
     <div class="main-content">
-        <div>
-            <button class="button active" id="leaderboardBtn" onclick="showLeaderboard()">Leaderboard</button>
-            <button class="button" id="ratingsBtn" onclick="showRatings()">Rating Progress</button>
+        <div class="action-panel">
+            <h3>&#127922; Backgammon Management</h3>
+            <div class="action-buttons">
+                <button class="add-player-btn" onclick="openAddPlayerModal()">➕ Add Player</button>
+                <button class="add-result-btn" onclick="openAddResultModal()">🎮 Add Game Result</button>
+            </div>
+        </div>
+        
+        <div class="action-panel">
+            <h3>📊 Charts</h3>
+            <div class="action-buttons">
+                <button class="button active" onclick="showLeaderboard()">🏆 Leaderboard</button>
+                <button class="button" onclick="showRatingsProgress()">📈 Ratings Progress</button>
+            </div>
         </div>
         
         <div id="imageContainer">
-            <div id="placeholder" class="placeholder">
-                <h2>Backgammon Dashboard</h2>
-                <p>No players added yet.</p>
-                <p>Add players to start tracking backgammon games!</p>
-            </div>
-            <img id="displayImage" src="backgammon_leaderboard.png" alt="Backgammon Leaderboard" style="display: none;">
+            <img id="displayImage" src="backgammon_leaderboard.png" alt="Backgammon Leaderboard">
         </div>
     </div>
 
     <!-- Add Player Modal -->
     <div id="addPlayerModal" class="modal">
         <div class="modal-content">
-            <h3>Add New Backgammon Player</h3>
-            <input type="text" id="playerNameInput" placeholder="Enter player name" maxlength="20">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Backgammon Player</h3>
+                <span class="close" onclick="closeAddPlayerModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label for="playerNameInput">Player Name:</label>
+                <input type="text" id="playerNameInput" placeholder="Enter player name" maxlength="20">
+            </div>
             <div class="modal-buttons">
-                <button class="modal-btn confirm" onclick="addPlayer()">Add Player</button>
                 <button class="modal-btn cancel" onclick="closeAddPlayerModal()">Cancel</button>
+                <button class="modal-btn confirm" onclick="addPlayer()">Add Player</button>
             </div>
         </div>
     </div>
@@ -329,375 +51,55 @@
     <!-- Add Result Modal -->
     <div id="addResultModal" class="modal">
         <div class="modal-content">
-            <h3>Add Backgammon Game Result</h3>
-            <div style="display: flex; gap: 10px; margin: 15px 0;">
-                <div style="flex: 1;">
-                    <label for="player1Select">Player 1:</label>
-                    <select id="player1Select" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-                        <option value="">Select Player 1</option>
-                    </select>
-                </div>
-                <div style="flex: 1;">
-                    <label for="player2Select">Player 2:</label>
-                    <select id="player2Select" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-                        <option value="">Select Player 2</option>
-                    </select>
-                </div>
+            <div class="modal-header">
+                <h3 class="modal-title">Add Backgammon Game Result</h3>
+                <span class="close" onclick="closeAddResultModal()">&times;</span>
             </div>
-            <div style="margin: 15px 0;">
+            <div class="form-group">
+                <label for="player1Select">Player 1:</label>
+                <select id="player1Select">
+                    <option value="">Select Player 1</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="player2Select">Player 2:</label>
+                <select id="player2Select">
+                    <option value="">Select Player 2</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Result:</label>
                 <div class="radio-group">
-                    <div class="radio-row">
-                        <label class="radio-option">
-                            <input type="radio" name="result" value="1-0" id="result1-0">
-                            <div class="radio-custom">
-                                <span>1-0<br><small>Player 1 wins</small></span>
-                            </div>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="result" value="0-1" id="result0-1">
-                            <div class="radio-custom">
-                                <span>0-1<br><small>Player 2 wins</small></span>
-                            </div>
-                        </label>
-                    </div>
-                    <label class="radio-option full-width">
-                        <input type="radio" name="result" value="1/2-1/2" id="result1/2-1/2">
-                        <div class="radio-custom">
-                            <span>1/2-1/2<br><small>Draw</small></span>
-                        </div>
+                    <label class="radio-option">
+                        <input type="radio" name="result" value="1-0">
+                        Player 1 Wins
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="result" value="0-1">
+                        Player 2 Wins
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="result" value="1/2-1/2">
+                        Draw
                     </label>
                 </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-btn confirm" onclick="submitResult()">Submit Result</button>
                 <button class="modal-btn cancel" onclick="closeAddResultModal()">Cancel</button>
+                <button class="modal-btn confirm" onclick="submitResult()">Submit Result</button>
             </div>
         </div>
     </div>
 
+    <!-- Shared JavaScript files -->
+    <script src="/game-common.js"></script>
+    <script src="/footer.js"></script>
+    
     <script>
-        function getContext() {
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const parts = window.location.pathname.split('/').filter(Boolean);
-            let team = null;
-            if (parts.length >= 3 && parts[0] === 't') { team = parts[1]; }
-            return { isLocal, team, game: 'backgammon' };
-        }
-
-        function showLeaderboard() {
-            const placeholder = document.getElementById('placeholder');
-            const image = document.getElementById('displayImage');
-            const { team } = getContext();
-            const baseSrc = team ? `/api/${team}/charts/backgammon/leaderboard.png` : 'backgammon_leaderboard.png';
-            const src = `${baseSrc}?t=${Date.now()}`;
-            
-            // Check if leaderboard image exists
-            fetch(src)
-                .then(response => {
-                    if (response.ok) {
-                        placeholder.style.display = 'none';
-                        image.style.display = 'block';
-                        image.src = src;
-                        image.alt = 'Backgammon Leaderboard';
-                    } else {
-                        placeholder.style.display = 'block';
-                        image.style.display = 'none';
-                        placeholder.innerHTML = `
-                            <h2>Backgammon Leaderboard</h2>
-                            <p>No players added yet.</p>
-                            <p>Add players to start tracking backgammon games!</p>
-                        `;
-                    }
-                })
-                .catch(() => {
-                    placeholder.style.display = 'block';
-                    image.style.display = 'none';
-                    placeholder.innerHTML = `
-                        <h2>Backgammon Leaderboard</h2>
-                        <p>No players added yet.</p>
-                        <p>Add players to start tracking backgammon games!</p>
-                    `;
-                });
-            
-            document.getElementById('leaderboardBtn').classList.add('active');
-            document.getElementById('ratingsBtn').classList.remove('active');
-        }
-        
-        function showRatings() {
-            const placeholder = document.getElementById('placeholder');
-            const image = document.getElementById('displayImage');
-            const { team } = getContext();
-            const baseSrc = team ? `/api/${team}/charts/backgammon/ratings_progress.png` : 'backgammon_ratings_progress.png';
-            const src = `${baseSrc}?t=${Date.now()}`;
-            
-            // Check if ratings image exists
-            fetch(src)
-                .then(response => {
-                    if (response.ok) {
-                        placeholder.style.display = 'none';
-                        image.style.display = 'block';
-                        image.src = src;
-                        image.alt = 'Backgammon Ratings Progress';
-                    } else {
-                        placeholder.style.display = 'block';
-                        image.style.display = 'none';
-                        placeholder.innerHTML = `
-                            <h2>Backgammon Ratings Progress</h2>
-                            <p>No players added yet.</p>
-                            <p>Add players to start tracking backgammon games!</p>
-                        `;
-                    }
-                })
-                .catch(() => {
-                    placeholder.style.display = 'block';
-                    image.style.display = 'none';
-                    placeholder.innerHTML = `
-                        <h2>Backgammon Ratings Progress</h2>
-                        <p>No players added yet.</p>
-                        <p>Add players to start tracking backgammon games!</p>
-                    `;
-                });
-            
-            document.getElementById('ratingsBtn').classList.add('active');
-            document.getElementById('leaderboardBtn').classList.remove('active');
-        }
-
-        // Player Management Functions
-        function openAddPlayerModal() {
-            document.getElementById('addPlayerModal').style.display = 'block';
-            document.getElementById('playerNameInput').focus();
-        }
-
-        function closeAddPlayerModal() {
-            document.getElementById('addPlayerModal').style.display = 'none';
-            document.getElementById('playerNameInput').value = '';
-            hideStatusMessage();
-        }
-
-        function addPlayer() {
-            const playerName = document.getElementById('playerNameInput').value.trim().toLowerCase();
-            
-            if (!playerName) {
-                showStatusMessage('Please enter a player name', 'error');
-                return;
-            }
-
-            if (!playerName.match(/^[a-zA-Z0-9_]+$/)) {
-                showStatusMessage('Player name can only contain letters, numbers, and underscores', 'error');
-                return;
-            }
-
-            // Show loading state
-            const addBtn = document.querySelector('.modal-btn.confirm');
-            const originalText = addBtn.textContent;
-            addBtn.textContent = 'Adding...';
-            addBtn.disabled = true;
-
-            // Determine API URL based on where we're running
-            const { isLocal, team } = getContext();
-            const base = isLocal ? 'http://localhost:8080' : '';
-            const apiUrl = team ? `${base}/api/${team}/players/backgammon` : `${base}/api/players/backgammon`; // Same domain - works perfectly with HTTPS!
-            
-            // Make API call to add player
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    player_name: playerName
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showStatusMessage(`Player "${data.player_name}" added successfully!`, 'success');
-                    setTimeout(() => {
-                        closeAddPlayerModal();
-                        // Refresh the charts
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showStatusMessage(data.error || 'Failed to add player', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showStatusMessage('Network error. Make sure the server is running.', 'error');
-            })
-            .finally(() => {
-                // Restore button state
-                addBtn.textContent = originalText;
-                addBtn.disabled = false;
-            });
-        }
-
-        function showStatusMessage(message, type) {
-            const statusDiv = document.getElementById('statusMessage');
-            statusDiv.textContent = message;
-            statusDiv.className = `status-message status-${type}`;
-            statusDiv.style.display = 'block';
-        }
-
-        function hideStatusMessage() {
-            document.getElementById('statusMessage').style.display = 'none';
-        }
-
-        // Add Result Modal Functions
-        function openAddResultModal() {
-            document.getElementById('addResultModal').style.display = 'block';
-            loadPlayers();
-        }
-
-        function closeAddResultModal() {
-            document.getElementById('addResultModal').style.display = 'none';
-            resetResultForm();
-            hideStatusMessage();
-        }
-
-        function loadPlayers() {
-            const { isLocal, team } = getContext();
-            const base = isLocal ? 'http://localhost:8080' : '';
-            const apiUrl = team ? `${base}/api/${team}/players/backgammon` : `${base}/api/players/backgammon`;
-            
-            fetch(apiUrl)
-                .then(response => response.json())
-                .then(data => {
-                    const player1Select = document.getElementById('player1Select');
-                    const player2Select = document.getElementById('player2Select');
-                    
-                    // Clear existing options except the first placeholder
-                    player1Select.innerHTML = '<option value="">Select Player 1</option>';
-                    player2Select.innerHTML = '<option value="">Select Player 2</option>';
-                    
-                    // Add player options
-                    data.players.forEach(player => {
-                        // Format player name: replace underscores with spaces and title case
-                        const displayName = player.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                        
-                        const option1 = document.createElement('option');
-                        option1.value = player;
-                        option1.textContent = displayName;
-                        player1Select.appendChild(option1);
-                        
-                        const option2 = document.createElement('option');
-                        option2.value = player;
-                        option2.textContent = displayName;
-                        player2Select.appendChild(option2);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading players:', error);
-                    showStatusMessage('Failed to load players', 'error');
-                });
-        }
-
-        function resetResultForm() {
-            document.getElementById('player1Select').value = '';
-            document.getElementById('player2Select').value = '';
-            document.querySelectorAll('input[name="result"]').forEach(radio => {
-                radio.checked = false;
-            });
-        }
-
-        function submitResult() {
-            const player1 = document.getElementById('player1Select').value;
-            const player2 = document.getElementById('player2Select').value;
-            const result = document.querySelector('input[name="result"]:checked')?.value;
-            
-            if (!player1 || !player2) {
-                showStatusMessage('Please select both players', 'error');
-                return;
-            }
-            
-            if (player1 === player2) {
-                showStatusMessage('Players must be different', 'error');
-                return;
-            }
-            
-            if (!result) {
-                showStatusMessage('Please select a result', 'error');
-                return;
-            }
-
-            // Show loading state
-            const submitBtn = document.querySelector('#addResultModal .modal-btn.confirm');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Submitting...';
-            submitBtn.disabled = true;
-
-            // Determine API URL
-            const { isLocal, team } = getContext();
-            const base = isLocal ? 'http://localhost:8080' : '';
-            const apiUrl = team ? `${base}/api/${team}/results/backgammon` : `${base}/api/results/backgammon`;
-            
-            // Submit result
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    player1: player1,
-                    player2: player2,
-                    result: result
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showStatusMessage(`Result submitted: ${player1} vs ${player2} (${result})`, 'success');
-                    setTimeout(() => {
-                        closeAddResultModal();
-                        // Refresh the charts
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showStatusMessage(data.error || 'Failed to submit result', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showStatusMessage('Network error. Make sure the server is running.', 'error');
-            })
-            .finally(() => {
-                // Restore button state
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-            });
-        }
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const addPlayerModal = document.getElementById('addPlayerModal');
-            const addResultModal = document.getElementById('addResultModal');
-            
-            if (event.target === addPlayerModal) {
-                closeAddPlayerModal();
-            }
-            if (event.target === addResultModal) {
-                closeAddResultModal();
-            }
-        }
-
-        // Handle Enter key in input
-        document.getElementById('playerNameInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addPlayer();
-            }
-        });
-
-        // Show leaderboard by default and set home button
+        // Initialize the backgammon page
         window.addEventListener('load', () => {
-            const { team } = getContext();
-            const homeButton = document.getElementById('homeButton');
-            homeButton.href = team ? `/t/${team}` : '/';
-            showLeaderboard();
+            initGamePage('backgammon');
         });
     </script>
-    
-    <!-- Footer injection script -->
-    <script src="/footer.js"></script>
 </body>
-</html> 
+</html>
