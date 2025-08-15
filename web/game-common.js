@@ -1,6 +1,5 @@
 // Shared functionality for all game pages
 let currentGame = '';
-let selectedResult = null;
 
 // Initialize the game page
 function initGamePage(gameName) {
@@ -73,11 +72,8 @@ function closeAddPlayerModal() {
 function openAddResultModal() {
     document.getElementById('addResultModal').style.display = 'block';
     // Reset result selection
-    selectedResult = null;
-    const resultButtons = document.querySelectorAll('.result-btn');
-    if (resultButtons && resultButtons.length) {
-        resultButtons.forEach(btn => btn.classList.remove('selected'));
-    }
+    const resultRadios = document.querySelectorAll('input[name="result"]');
+    resultRadios.forEach(radio => radio.checked = false);
     loadPlayers();
 }
 
@@ -107,7 +103,8 @@ async function loadPlayers() {
 
         // Add player options
         players.forEach(player => {
-            const display = player.replace(/_/g, ' ').replace(' Q', ' -♛');
+            // Format player name: replace underscores with spaces, title case, and handle Q suffix
+            const display = player.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' -♛');
             const option1 = document.createElement('option');
             option1.value = player;
             option1.textContent = display;
@@ -176,7 +173,7 @@ async function addPlayer() {
 async function submitResult() {
     const player1 = document.getElementById('player1Select').value;
     const player2 = document.getElementById('player2Select').value;
-    const result = selectedResult;
+    const result = document.querySelector('input[name="result"]:checked')?.value;
     
     if (!player1 || !player2) {
         showStatusMessage('Please select both players', 'error');
@@ -236,21 +233,6 @@ async function submitResult() {
         // Restore button state
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
-    }
-}
-
-// Result selection via buttons
-function selectResult(result) {
-    selectedResult = result;
-    const resultButtons = document.querySelectorAll('.result-btn');
-    if (resultButtons && resultButtons.length) {
-        resultButtons.forEach(btn => {
-            if (btn.dataset.result === result) {
-                btn.classList.add('selected');
-            } else {
-                btn.classList.remove('selected');
-            }
-        });
     }
 }
 
