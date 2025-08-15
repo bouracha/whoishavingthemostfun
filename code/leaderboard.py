@@ -17,6 +17,14 @@ plt.rcParams['font.size'] = 12
 plt.rcParams['axes.grid'] = True
 plt.rcParams['grid.alpha'] = 0.3
 plt.rcParams['figure.dpi'] = 72  # Lower DPI to reduce memory usage
+plt.rcParams['font.family'] = 'DejaVu Sans'
+plt.rcParams['font.sans-serif'] = [
+    'DejaVu Sans',
+    'Arial Unicode MS',
+    'Symbola',
+    'FreeSerif',
+    'Noto Sans Symbols'
+]
 
 def add_medal_image(ax, x, y, position, size=0.04):
     """Add a medal image from the images/medals/ folder"""
@@ -254,6 +262,9 @@ def create_leaderboard(game_folder, excluded_players=None, title=None):
         
         # Add player name (convert underscores to spaces and title case)
         display_name = player.replace('_', ' ').title()
+        # Replace any " Q" with " -♛" (space + Q becomes space + dash + queen)
+        display_name = display_name.replace(' Q', ' -♛')
+        
         ax.text(0.35, y_pos, display_name, fontsize=14, fontweight='bold', ha='left', va='center')
         
         # Add player image only for team contexts (not main homepage)
@@ -312,6 +323,9 @@ def create_leaderboard(game_folder, excluded_players=None, title=None):
     print("=" * 40)
     for i, (player, rating) in enumerate(sorted_players):
         display_name = player.replace('_', ' ').title()
+        # Replace any " Q" with " -♛" (space + Q becomes space + dash + queen)
+        display_name = display_name.replace(' Q', ' -♛')
+        
         print(f"{i+1:2d}. {display_name:<20} {int(rating):>4d}")
 
 if __name__ == "__main__":

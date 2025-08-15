@@ -330,6 +330,15 @@ def _deterministic_choice(options, key: str) -> str:
     idx = int(h, 16) % len(options)
     return options[idx]
 
+def format_player_name_for_display(player_name: str) -> str:
+    """Format player name for display, with special case for Q suffix"""
+    display_name = player_name.replace('_', ' ').title()
+    
+    # Replace any " Q" with " -♛" (space + Q becomes space + dash + queen)
+    display_name = display_name.replace(' Q', ' -♛')
+    
+    return display_name
+
 def _generate_result_commentary(player1_display: str, player2_display: str, result: str, probability: float, timestamp: str) -> str:
     """Create fun commentary for a result. probability is P(player1 wins)."""
     # Draw case
@@ -402,8 +411,8 @@ def get_recent_results_main():
         results = []
         for _, row in df_sorted.iterrows():
             # Format player names for display
-            player1_display = row['player1'].replace('_', ' ').title()
-            player2_display = row['player2'].replace('_', ' ').title()
+            player1_display = format_player_name_for_display(row['player1'])
+            player2_display = format_player_name_for_display(row['player2'])
             timestamp_str = row['timestamp'].strftime('%Y-%m-%d %H:%M')
             probability = float(row['probability'])
             
@@ -454,8 +463,8 @@ def get_recent_results(team):
         results = []
         for _, row in df_sorted.iterrows():
             # Format player names for display
-            player1_display = row['player1'].replace('_', ' ').title()
-            player2_display = row['player2'].replace('_', ' ').title()
+            player1_display = format_player_name_for_display(row['player1'])
+            player2_display = format_player_name_for_display(row['player2'])
             timestamp_str = row['timestamp'].strftime('%Y-%m-%d %H:%M')
             probability = float(row['probability'])
             

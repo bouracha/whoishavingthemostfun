@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Reference</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .emoji-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .emoji-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .emoji-item:hover {
+            background-color: #f0f0f0;
+        }
+        .emoji {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        .emoji-name {
+            font-size: 0.8em;
+            text-align: center;
+            color: #666;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        .copy-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Emoji Reference</h1>
+    <p>Click any emoji to copy it to your clipboard!</p>
+    
+    <div class="emoji-section">
+        <h2>🔧 Add Your Own Emoji</h2>
+        <div style="display: flex; gap: 10px; align-items: center; margin: 15px 0;">
+            <input type="text" id="emojiInput" placeholder="Paste emoji here..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 1.2em;">
+            <button onclick="getEmojiCode()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Get HTML Code</button>
+        </div>
+        <div id="emojiCode" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; display: none;"></div>
+    </div>
+    
+    <div class="copy-notification" id="copyNotification">Copied! 📋</div>
+
+    <div class="emoji-section">
+        <h2>🏆 Sports & Games</h2>
+        <div class="emoji-grid">
+            <div class="emoji-item" onclick="copyEmoji('🏆')">
+                <div class="emoji">🏆</div>
+                <div class="emoji-name">Trophy</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🥇')">
+                <div class="emoji">🥇</div>
+                <div class="emoji-name">Gold Medal</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🥈')">
+                <div class="emoji">🥈</div>
+                <div class="emoji-name">Silver Medal</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🥉')">
+                <div class="emoji">🥉</div>
+                <div class="emoji-name">Bronze Medal</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('♟️')">
+                <div class="emoji">♟️</div>
+                <div class="emoji-name">Chess</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🏓')">
+                <div class="emoji">🏓</div>
+                <div class="emoji-name">Ping Pong</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎲')">
+                <div class="emoji">🎲</div>
+                <div class="emoji-name">Dice</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎯')">
+                <div class="emoji">🎯</div>
+                <div class="emoji-name">Target</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="emoji-section">
+        <h2>😊 Emotions & Reactions</h2>
+        <div class="emoji-grid">
+            <div class="emoji-item" onclick="copyEmoji('😊')">
+                <div class="emoji">😊</div>
+                <div class="emoji-name">Happy</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎉')">
+                <div class="emoji">🎉</div>
+                <div class="emoji-name">Celebration</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🔥')">
+                <div class="emoji">🔥</div>
+                <div class="emoji-name">Fire</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('💪')">
+                <div class="emoji">💪</div>
+                <div class="emoji-name">Strong</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('👑')">
+                <div class="emoji">👑</div>
+                <div class="emoji-name">Crown</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('⭐')">
+                <div class="emoji">⭐</div>
+                <div class="emoji-name">Star</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('💯')">
+                <div class="emoji">💯</div>
+                <div class="emoji-name">100</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🚀')">
+                <div class="emoji">🚀</div>
+                <div class="emoji-name">Rocket</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="emoji-section">
+        <h2>📊 Stats & Progress</h2>
+        <div class="emoji-grid">
+            <div class="emoji-item" onclick="copyEmoji('📈')">
+                <div class="emoji">📈</div>
+                <div class="emoji-name">Chart Up</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('📉')">
+                <div class="emoji">📉</div>
+                <div class="emoji-name">Chart Down</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('📊')">
+                <div class="emoji">📊</div>
+                <div class="emoji-name">Bar Chart</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎯')">
+                <div class="emoji">🎯</div>
+                <div class="emoji-name">Target</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🏅')">
+                <div class="emoji">🏅</div>
+                <div class="emoji-name">Medal</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🥇')">
+                <div class="emoji">🥇</div>
+                <div class="emoji-name">1st Place</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🥈')">
+                <div class="emoji">🥈</div>
+                <div class="emoji-name">2nd Place</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🥉')">
+                <div class="emoji">🥉</div>
+                <div class="emoji-name">3rd Place</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="emoji-section">
+        <h2>🎮 Game Actions</h2>
+        <div class="emoji-grid">
+            <div class="emoji-item" onclick="copyEmoji('⚔️')">
+                <div class="emoji">⚔️</div>
+                <div class="emoji-name">Battle</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🏁')">
+                <div class="emoji">🏁</div>
+                <div class="emoji-name">Finish</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎪')">
+                <div class="emoji">🎪</div>
+                <div class="emoji-name">Show</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎨')">
+                <div class="emoji">🎨</div>
+                <div class="emoji-name">Art</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎭')">
+                <div class="emoji">🎭</div>
+                <div class="emoji-name">Drama</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎪')">
+                <div class="emoji">🎪</div>
+                <div class="emoji-name">Circus</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎯')">
+                <div class="emoji">🎯</div>
+                <div class="emoji-name">Target</div>
+            </div>
+            <div class="emoji-item" onclick="copyEmoji('🎲')">
+                <div class="emoji">🎲</div>
+                <div class="emoji-name">Dice</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyEmoji(emoji) {
+            navigator.clipboard.writeText(emoji).then(function() {
+                const notification = document.getElementById('copyNotification');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy emoji: ', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = emoji;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const notification = document.getElementById('copyNotification');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 2000);
+            });
+        }
+
+        function getEmojiCode() {
+            const input = document.getElementById('emojiInput');
+            const emoji = input.value.trim();
+            const codeDiv = document.getElementById('emojiCode');
+            
+            if (emoji) {
+                let htmlCode = '';
+                for (let i = 0; i < emoji.length; i++) {
+                    const charCode = emoji.charCodeAt(i);
+                    if (charCode > 127) { // Unicode character
+                        htmlCode += `&#${charCode};`;
+                    } else {
+                        htmlCode += emoji[i];
+                    }
+                }
+                
+                codeDiv.innerHTML = `
+                    <strong>HTML Entity Code:</strong><br>
+                    <code>${htmlCode}</code><br><br>
+                    <strong>Direct Emoji:</strong><br>
+                    <code>${emoji}</code>
+                `;
+                codeDiv.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
