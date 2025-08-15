@@ -53,7 +53,14 @@ def write_new_rating(
 
     timestamp should be a string formatted as 'YYYY-MM-DD HH:MM:SS' if provided.
     """
-    ts = timestamp if timestamp else datetime.now()
+    # Always use UK time (UTC+0 in winter, UTC+1 in summer)
+    import time
+    uk_time = datetime.utcnow()
+    # Add 1 hour for BST (British Summer Time) - March to October
+    # Simple heuristic: if month is 3-10, add 1 hour
+    if uk_time.month >= 3 and uk_time.month <= 10:
+        uk_time = uk_time + timedelta(hours=1)
+    ts = timestamp if timestamp else uk_time
     df = pd.DataFrame(np.array(np.expand_dims((new_rating, opponent, result, colour, ts), axis=0)))
     
     # Determine the correct path (database/ or ../database/), with optional team scoping
@@ -149,9 +156,12 @@ def log_result_to_team(player1, player2, result, game, team, probability, timest
         df_headers = pd.DataFrame(columns=headers)
         df_headers.to_csv(results_file, index=False)
     
-    # Prepare the new result entry
-    now = datetime.now()
-    ts = timestamp if timestamp else now.strftime('%Y-%m-%d %H:%M:%S')
+    # Prepare the new result entry - always use UK time
+    uk_time = datetime.utcnow()
+    # Add 1 hour for BST (British Summer Time) - March to October
+    if uk_time.month >= 3 and uk_time.month <= 10:
+        uk_time = uk_time + timedelta(hours=1)
+    ts = timestamp if timestamp else uk_time.strftime('%Y-%m-%d %H:%M:%S')
     new_entry = {
         'timestamp': ts,
         'game': game,
