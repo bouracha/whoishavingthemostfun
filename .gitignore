@@ -12,6 +12,7 @@ database/*_ratings_progress.png
 # Game data (live data stays on EC2 only)
 database/*/
 database/**/*.csv
+database/teams.json
 
 # Player and medal images (can be regenerated/manually added)
 web/images/players/
