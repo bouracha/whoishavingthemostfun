@@ -262,8 +262,8 @@ def create_leaderboard(game_folder, excluded_players=None, title=None):
         
         # Add player name (convert underscores to spaces and title case)
         display_name = player.replace('_', ' ').title()
-        # Replace any " Q" with " -♛" (space + Q becomes space + dash + queen)
-        display_name = display_name.replace(' Q', ' -♛')
+        # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
+        display_name = display_name.replace(' Q', ' (-♛)')
         
         ax.text(0.35, y_pos, display_name, fontsize=14, fontweight='bold', ha='left', va='center')
         
@@ -323,8 +323,8 @@ def create_leaderboard(game_folder, excluded_players=None, title=None):
     print("=" * 40)
     for i, (player, rating) in enumerate(sorted_players):
         display_name = player.replace('_', ' ').title()
-        # Replace any " Q" with " -♛" (space + Q becomes space + dash + queen)
-        display_name = display_name.replace(' Q', ' -♛')
+        # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
+        display_name = display_name.replace(' Q', ' (-♛)')
         
         print(f"{i+1:2d}. {display_name:<20} {int(rating):>4d}")
 

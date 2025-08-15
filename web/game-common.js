@@ -104,7 +104,7 @@ async function loadPlayers() {
         // Add player options
         players.forEach(player => {
             // Format player name: replace underscores with spaces, title case, and handle Q suffix
-            const display = player.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' -♛');
+            const display = player.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' (-♛)');
             const option1 = document.createElement('option');
             option1.value = player;
             option1.textContent = display;
@@ -227,7 +227,10 @@ async function submitResult() {
         const data = await response.json();
         
         if (data.success) {
-            showStatusMessage(`Result submitted: ${player1} vs ${player2} (${result})`, 'success');
+            // Format player names for display in success message
+            const player1Display = player1.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' (-♛)');
+            const player2Display = player2.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' (-♛)');
+            showStatusMessage(`Result submitted: ${player1Display} vs ${player2Display} (${result})`, 'success');
             setTimeout(() => {
                 closeAddResultModal();
                 // Refresh the charts

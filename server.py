@@ -334,8 +334,8 @@ def format_player_name_for_display(player_name: str) -> str:
     """Format player name for display, with special case for Q suffix"""
     display_name = player_name.replace('_', ' ').title()
     
-    # Replace any " Q" with " -♛" (space + Q becomes space + dash + queen)
-    display_name = display_name.replace(' Q', ' -♛')
+    # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
+    display_name = display_name.replace(' Q', ' (-♛)')
     
     return display_name
 

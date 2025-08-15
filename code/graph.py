@@ -190,8 +190,8 @@ if all_times:
             # Extract just the player name from the label (remove path) and format properly
             player_name = label.split('/')[-1] if '/' in label else label
             player_name = player_name.replace('_', ' ').title()
-            # Replace any " Q" with " -♛" (space + Q becomes space + dash + queen)
-            player_name = player_name.replace(' Q', ' -♛')
+            # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
+            player_name = player_name.replace(' Q', ' (-♛)')
             
             # Plot the line first (make inactive players more transparent)
             alpha = 0.7 if is_inactive else 1.0
@@ -254,8 +254,8 @@ if all_times:
                 mid_index = len(mpl_times)//2
                 best_x, best_y = mpl_times[mid_index], ratings_flat[mid_index]
                 display_name = player.replace('_', ' ').title()
-                # Replace any " Q" with " -♛" (space + Q becomes space + dash + queen)
-                display_name = display_name.replace(' Q', ' -♛')
+                # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
+                display_name = display_name.replace(' Q', ' (-♛)')
                 plt.annotate(display_name, xy=(best_x, best_y), xytext=(5, 15), 
                            textcoords='offset points', fontsize=20, fontweight='bold',
                            color=color, alpha=0.7, ha='left', va='bottom')
