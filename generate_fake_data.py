@@ -201,9 +201,24 @@ def simulate_games_for_game_type(game_type: str, total_games: int = 100):
         k_factor1 = get_adjusted_k_factor(p1, game_type)
         k_factor2 = get_adjusted_k_factor(p2, game_type)
         
-        # Calculate new ratings with individual K-factors
-        new_rating1, _, probability = update(rating1, rating2, score, K=k_factor1)
-        _, new_rating2, _ = update(rating1, rating2, 1-score, K=k_factor2)
+        # Calculate expected score and probability
+        rating_diff = rating1 - rating2
+        probability = 1.0 / (1.0 + (10 ** (rating_diff / 400)))
+        
+        # Calculate rating changes using individual K-factors
+        # Player 1's rating change
+        expected_score1 = probability
+        actual_score1 = score
+        rating_change1 = (actual_score1 - expected_score1) * k_factor1
+        
+        # Player 2's rating change (opposite direction)
+        expected_score2 = 1 - probability
+        actual_score2 = 1 - score
+        rating_change2 = (actual_score2 - expected_score2) * k_factor2
+        
+        # Apply the changes
+        new_rating1 = rating1 + rating_change1
+        new_rating2 = rating2 + rating_change2
         
         # Write new ratings with properly formatted timestamp (spread over past year)
         write_new_rating(p1, new_rating1, p2, score, game_type, colour='white', timestamp=ts_str)

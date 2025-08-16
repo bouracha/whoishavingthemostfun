@@ -25,9 +25,24 @@ game = (opt.game or '').lower()
 k_factor1 = get_adjusted_k_factor(opt.player1, opt.game, opt.team)
 k_factor2 = get_adjusted_k_factor(opt.player2, opt.game, opt.team)
 
-# Calculate new ratings with individual K-factors
-new_rating1, _, probability = update(rating1, rating2, opt.score, K=k_factor1)
-_, new_rating2, _ = update(rating1, rating2, 1-opt.score, K=k_factor2)
+# Calculate expected score and probability
+rating_diff = rating1 - rating2
+probability = 1.0 / (1.0 + (10 ** (rating_diff / 400)))
+
+# Calculate rating changes using individual K-factors
+# Player 1's rating change
+expected_score1 = probability
+actual_score1 = opt.score
+rating_change1 = (actual_score1 - expected_score1) * k_factor1
+
+# Player 2's rating change (opposite direction)
+expected_score2 = 1 - probability
+actual_score2 = 1 - opt.score
+rating_change2 = (actual_score2 - expected_score2) * k_factor2
+
+# Apply the changes
+new_rating1 = rating1 + rating_change1
+new_rating2 = rating2 + rating_change2
 
 print(str(opt.player1)+"'s new ratings is "+str(int(new_rating1))+" and "+str(opt.player2)+"'s new ratings is "+str(int(new_rating2)))
 

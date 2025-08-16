@@ -505,9 +505,24 @@ def submit_game_with_charts(player1, player2, result, game, team=None, timestamp
         k_factor1 = get_adjusted_k_factor(player1, game, team)
         k_factor2 = get_adjusted_k_factor(player2, game, team)
         
-        # Calculate new ratings with individual K-factors
-        new_rating1, _, probability = update(rating1, rating2, score, K=k_factor1)
-        _, new_rating2, _ = update(rating1, rating2, 1-score, K=k_factor2)
+        # Calculate expected score and probability
+        rating_diff = rating1 - rating2
+        probability = 1.0 / (1.0 + (10 ** (rating_diff / 400)))
+        
+        # Calculate rating changes using individual K-factors
+        # Player 1's rating change
+        expected_score1 = probability
+        actual_score1 = score
+        rating_change1 = (actual_score1 - expected_score1) * k_factor1
+        
+        # Player 2's rating change (opposite direction)
+        expected_score2 = 1 - probability
+        actual_score2 = 1 - score
+        rating_change2 = (actual_score2 - expected_score2) * k_factor2
+        
+        # Apply the changes
+        new_rating1 = rating1 + rating_change1
+        new_rating2 = rating2 + rating_change2
         
         # Write new ratings with timestamp
         write_new_rating(player1, new_rating1, player2, score, game, colour='white', team=team, timestamp=timestamp)
