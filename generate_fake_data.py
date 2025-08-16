@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 # Add the code directory to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), 'code'))
-from update import make_new_player, read_ratings, update, submit_game_with_charts, write_new_rating, log_result_to_team
+from update import make_new_player, read_ratings, update, submit_game_with_charts, write_new_rating, log_result_to_team, get_adjusted_k_factor
 from config import get_k_factor
 
 # Famous chess players to use across all games
@@ -196,7 +196,14 @@ def simulate_games_for_game_type(game_type: str, total_games: int = 100):
         # Read current ratings and calculate new ones
         ratings1, ratings2 = read_ratings(p1, p2, game_type)
         rating1, rating2 = ratings1[-1], ratings2[-1]
-        new_rating1, new_rating2, probability = update(rating1, rating2, score, K=get_k_factor(game_type))
+        
+        # Get adjusted K-factors for each player
+        k_factor1 = get_adjusted_k_factor(p1, game_type)
+        k_factor2 = get_adjusted_k_factor(p2, game_type)
+        
+        # Calculate new ratings with individual K-factors
+        new_rating1, _, probability = update(rating1, rating2, score, K=k_factor1)
+        _, new_rating2, _ = update(rating1, rating2, 1-score, K=k_factor2)
         
         # Write new ratings with properly formatted timestamp (spread over past year)
         write_new_rating(p1, new_rating1, p2, score, game_type, colour='white', timestamp=ts_str)

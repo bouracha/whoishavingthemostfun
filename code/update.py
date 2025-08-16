@@ -75,6 +75,58 @@ def write_new_rating(
         df.to_csv(f, header=False, index=False)
 
 
+def count_player_games(player, game='chess', team=None):
+    """
+    Count the number of games a player has played (excluding the initial rating entry).
+    
+    Args:
+        player (str): Player name
+        game (str): Game type
+        team (str): Optional team name
+    
+    Returns:
+        int: Number of games played (0 if player doesn't exist)
+    """
+    try:
+        # Determine the correct path (database/ or ../database/), with optional team scoping
+        database_path = "database" if os.path.exists("database") else "../database"
+        player_file = f"{database_path}/{team}/{game}/{player}.csv" if team else f"{database_path}/{game}/{player}.csv"
+        
+        if not os.path.exists(player_file):
+            return 0
+            
+        data = pd.read_csv(player_file)
+        # Subtract 1 to exclude the initial rating entry
+        return max(0, len(data) - 1)
+        
+    except Exception as e:
+        print(f"Error counting games for player '{player}': {e}")
+        return 0
+
+def get_adjusted_k_factor(player, game='chess', team=None):
+    """
+    Get the K-factor for a player, adjusted based on their number of games.
+    Players with 20+ games get a reduced K-factor (max of 20).
+    
+    Args:
+        player (str): Player name
+        game (str): Game type
+        team (str): Optional team name
+    
+    Returns:
+        int: Adjusted K-factor
+    """
+    from config import get_k_factor
+    
+    base_k_factor = get_k_factor(game)
+    games_played = count_player_games(player, game, team)
+    
+    # If player has 20+ games, reduce K-factor to max(20, base_k_factor)
+    if games_played >= 20:
+        return min(20, base_k_factor)
+    
+    return base_k_factor
+
 def read_ratings(player1, player2, game='chess', team=None):
     # Determine the correct path (database/ or ../database/), with optional team scoping
     database_path = "database" if os.path.exists("database") else "../database"
@@ -176,6 +228,52 @@ def log_result_to_team(player1, player2, result, game, team, probability, timest
     df_new.to_csv(results_file, mode='a', header=False, index=False)
     
     print(f"Logged result to {results_file}: {player1} vs {player2} ({result}) - probability: {probability:.3f}")
+
+def log_deleted_result(player1, player2, result, game, team=None, probability=None, original_timestamp=None, deletion_timestamp=None):
+    """
+    Log a deleted game result to the deleted.csv file for audit purposes.
+    Works for both team games and main database games.
+    """
+    import os
+    
+    # Determine the correct path based on where we're running from
+    database_path = "database" if os.path.exists("database") else "../database"
+    
+    if team:
+        deleted_file = f"{database_path}/{team}/deleted.csv"
+        # Ensure team directory exists
+        os.makedirs(os.path.dirname(deleted_file), exist_ok=True)
+    else:
+        deleted_file = f"{database_path}/deleted.csv"
+    
+    # Create headers if file doesn't exist
+    if not os.path.exists(deleted_file):
+        headers = ['original_timestamp', 'deletion_timestamp', 'game', 'player1', 'player2', 'result', 'probability']
+        df_headers = pd.DataFrame(columns=headers)
+        df_headers.to_csv(deleted_file, index=False)
+    
+    # Prepare the deletion entry - always use UK time
+    uk_time = datetime.utcnow()
+    # Add 1 hour for BST (British Summer Time) - March to October
+    if uk_time.month >= 3 and uk_time.month <= 10:
+        uk_time = uk_time + timedelta(hours=1)
+    deletion_ts = deletion_timestamp if deletion_timestamp else uk_time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    new_entry = {
+        'original_timestamp': original_timestamp,
+        'deletion_timestamp': deletion_ts,
+        'game': game,
+        'player1': player1,
+        'player2': player2,
+        'result': result,
+        'probability': f"{probability:.3f}" if probability is not None else "0.500"
+    }
+    
+    # Append to the deleted file
+    df_new = pd.DataFrame([new_entry])
+    df_new.to_csv(deleted_file, mode='a', header=False, index=False)
+    
+    print(f"Logged deleted result to {deleted_file}: {player1} vs {player2} ({result}) - deleted at {deletion_ts}")
 
 def delete_player(player_name, game='chess', team=None):
     """
@@ -288,6 +386,17 @@ def undo_last_result(team=None):
         result = last_result['result']
         probability = last_result['probability']
         
+        # Log the deleted result to deleted.csv before removing it
+        log_deleted_result(
+            player1=player1,
+            player2=player2,
+            result=result,
+            game=game,
+            team=team,
+            probability=probability,
+            original_timestamp=timestamp
+        )
+        
         # Remove the last row from results.csv
         df = df.iloc[:-1]
         df.to_csv(results_file, index=False)
@@ -392,9 +501,13 @@ def submit_game_with_charts(player1, player2, result, game, team=None, timestamp
         ratings1, ratings2 = read_ratings(player1, player2, game, team=team)
         rating1, rating2 = ratings1[-1], ratings2[-1]
         
-        # Calculate new ratings and probability
-        from config import get_k_factor
-        new_rating1, new_rating2, probability = update(rating1, rating2, score, K=get_k_factor(game))
+        # Get adjusted K-factors for each player
+        k_factor1 = get_adjusted_k_factor(player1, game, team)
+        k_factor2 = get_adjusted_k_factor(player2, game, team)
+        
+        # Calculate new ratings with individual K-factors
+        new_rating1, _, probability = update(rating1, rating2, score, K=k_factor1)
+        _, new_rating2, _ = update(rating1, rating2, 1-score, K=k_factor2)
         
         # Write new ratings with timestamp
         write_new_rating(player1, new_rating1, player2, score, game, colour='white', team=team, timestamp=timestamp)

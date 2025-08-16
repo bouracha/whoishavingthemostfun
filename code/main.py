@@ -20,7 +20,14 @@ ratings1, ratings2 = read_ratings(opt.player1, opt.player2, opt.game, team=opt.t
 rating1, rating2 = ratings1[-1], ratings2[-1]
 
 game = (opt.game or '').lower()
-new_rating1, new_rating2, probability = update(rating1, rating2, opt.score, K=get_k_factor(game))
+
+# Get adjusted K-factors for each player
+k_factor1 = get_adjusted_k_factor(opt.player1, opt.game, opt.team)
+k_factor2 = get_adjusted_k_factor(opt.player2, opt.game, opt.team)
+
+# Calculate new ratings with individual K-factors
+new_rating1, _, probability = update(rating1, rating2, opt.score, K=k_factor1)
+_, new_rating2, _ = update(rating1, rating2, 1-opt.score, K=k_factor2)
 
 print(str(opt.player1)+"'s new ratings is "+str(int(new_rating1))+" and "+str(opt.player2)+"'s new ratings is "+str(int(new_rating2)))
 
