@@ -201,20 +201,27 @@ def simulate_games_for_game_type(game_type: str, total_games: int = 100):
         k_factor1 = get_adjusted_k_factor(p1, game_type)
         k_factor2 = get_adjusted_k_factor(p2, game_type)
         
-        # Calculate expected score and probability
-        rating_diff = rating1 - rating2
-        probability = 1.0 / (1.0 + (10 ** (rating_diff / 400)))
+        # Calculate expected score and probability (using the same logic as the original update function)
+        rating_diff = abs(rating1 - rating2)
+        probability_of_weaker_winning = 1.0 / (1.0 + (10 ** (rating_diff / 400)))
+        probability_of_stronger_winning = 1 - probability_of_weaker_winning
+        
+        # Assign probabilities to the correct players
+        if rating1 > rating2:
+            expected_score1 = probability_of_stronger_winning
+            expected_score2 = probability_of_weaker_winning
+        else:
+            expected_score1 = probability_of_weaker_winning
+            expected_score2 = probability_of_stronger_winning
         
         # Calculate rating changes using individual K-factors
-        # Player 1's rating change
-        expected_score1 = probability
         actual_score1 = score
-        rating_change1 = (actual_score1 - expected_score1) * k_factor1
-        
-        # Player 2's rating change (opposite direction)
-        expected_score2 = 1 - probability
         actual_score2 = 1 - score
+        rating_change1 = (actual_score1 - expected_score1) * k_factor1
         rating_change2 = (actual_score2 - expected_score2) * k_factor2
+        
+        # Store the probability for player1 (same as original function)
+        probability = expected_score1
         
         # Apply the changes
         new_rating1 = rating1 + rating_change1
