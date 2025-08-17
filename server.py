@@ -368,9 +368,6 @@ def _generate_result_commentary(player1_display: str, player2_display: str, resu
     # Use the correct probability for the winner
     winner_prob = probability if result == '1-0' else (1 - probability)
     prob_pct = f"<span class='inline-probability'>{winner_prob * 100:.1f}%</span>"
-    
-    # Debug: Let's see what's happening
-    print(f"DEBUG: {player1_display} vs {player2_display}, result={result}, P(player1)={probability:.3f}, winner={winner}, winner_prob={winner_prob:.3f}")
 
     if winner_prob >= 0.8:
         comments = [
@@ -395,7 +392,7 @@ def _generate_result_commentary(player1_display: str, player2_display: str, resu
             f"🏆 {winner} demonstrated that {prob_pct} odds are earned, not given!",
             f"🏆 {winner} took care of business with {prob_pct} efficiency!",
             f"🏆 {winner} proved that {prob_pct} odds are just the beginning of their story!",
-            f"🏆 {winner} made {loser} work for every point, despite {prob_pct} odds!",
+            f"🏆 {winner} made {loser} feel the heat, converting {prob_pct} odds into a win!",
             f"🏆 {winner} showed why they're the {prob_pct} favorite - pure skill!"
         ]
     elif winner_prob >= 0.35:
@@ -433,27 +430,38 @@ def _generate_result_commentary(player1_display: str, player2_display: str, resu
 
 @app.route('/api/recent-results', methods=['GET'])
 def get_recent_results_main():
-    """Get the 5 most recent results for the main (non-team) database"""
+    """Get recent results for the main (non-team) database with pagination"""
     try:
         results_file = os.path.join(DATABASE_DIR, 'results.csv')
         
         if not os.path.exists(results_file):
-            return jsonify({'results': []})
+            return jsonify({'results': [], 'has_more': False})
         
         # Read the results CSV
         df = pd.read_csv(results_file)
         
         if df.empty:
-            return jsonify({'results': []})
+            return jsonify({'results': [], 'has_more': False})
         
-        # Sort by timestamp descending and get the 5 most recent
+        # Get pagination parameters
+        offset = request.args.get('offset', 0, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        
+        # Sort by timestamp descending and get paginated results
         # Handle both timestamp formats (with and without microseconds)
         df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed')
-        df_sorted = df.sort_values('timestamp', ascending=False).head(5)
+        df_sorted = df.sort_values('timestamp', ascending=False)
+        
+        # Check if there are more results available
+        total_results = len(df_sorted)
+        has_more = (offset + limit) < total_results
+        
+        # Get the requested slice
+        df_paginated = df_sorted.iloc[offset:offset + limit]
         
         # Format results for frontend
         results = []
-        for _, row in df_sorted.iterrows():
+        for _, row in df_paginated.iterrows():
             # Format player names for display
             player1_display = format_player_name_for_display(row['player1'])
             player2_display = format_player_name_for_display(row['player2'])
@@ -462,11 +470,11 @@ def get_recent_results_main():
             
             # Read persisted rating changes from results.csv (if present)
             try:
-                p1c = row['player1_change'] if 'player1_change' in df_sorted.columns else None
+                p1c = row['player1_change'] if 'player1_change' in df_paginated.columns else None
             except Exception:
                 p1c = None
             try:
-                p2c = row['player2_change'] if 'player2_change' in df_sorted.columns else None
+                p2c = row['player2_change'] if 'player2_change' in df_paginated.columns else None
             except Exception:
                 p2c = None
             
@@ -499,14 +507,14 @@ def get_recent_results_main():
                 'player2_change': player2_change
             })
         
-        return jsonify({'results': results})
+        return jsonify({'results': results, 'has_more': has_more})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/<team>/recent-results', methods=['GET'])
 def get_recent_results(team):
-    """Get the 5 most recent results for a team"""
+    """Get recent results for a team with pagination"""
     try:
         team = sanitize_team(team)
         assert_team_access(team)
@@ -514,22 +522,33 @@ def get_recent_results(team):
         results_file = os.path.join(DATABASE_DIR, team, 'results.csv')
         
         if not os.path.exists(results_file):
-            return jsonify({'results': []})
+            return jsonify({'results': [], 'has_more': False})
         
         # Read the results CSV
         df = pd.read_csv(results_file)
         
         if df.empty:
-            return jsonify({'results': []})
+            return jsonify({'results': [], 'has_more': False})
         
-        # Sort by timestamp descending and get the 5 most recent
+        # Get pagination parameters
+        offset = request.args.get('offset', 0, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        
+        # Sort by timestamp descending and get paginated results
         # Handle both timestamp formats (with and without microseconds)
         df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed')
-        df_sorted = df.sort_values('timestamp', ascending=False).head(5)
+        df_sorted = df.sort_values('timestamp', ascending=False)
+        
+        # Check if there are more results available
+        total_results = len(df_sorted)
+        has_more = (offset + limit) < total_results
+        
+        # Get the requested slice
+        df_paginated = df_sorted.iloc[offset:offset + limit]
         
         # Format results for frontend
         results = []
-        for _, row in df_sorted.iterrows():
+        for _, row in df_paginated.iterrows():
             # Format player names for display
             player1_display = format_player_name_for_display(row['player1'])
             player2_display = format_player_name_for_display(row['player2'])
@@ -538,11 +557,11 @@ def get_recent_results(team):
             
             # Read persisted rating changes from results.csv (if present)
             try:
-                p1c = row['player1_change'] if 'player1_change' in df_sorted.columns else None
+                p1c = row['player1_change'] if 'player1_change' in df_paginated.columns else None
             except Exception:
                 p1c = None
             try:
-                p2c = row['player2_change'] if 'player2_change' in df_sorted.columns else None
+                p2c = row['player2_change'] if 'player2_change' in df_paginated.columns else None
             except Exception:
                 p2c = None
             
@@ -575,7 +594,7 @@ def get_recent_results(team):
                 'player2_change': player2_change
             })
         
-        return jsonify({'results': results})
+        return jsonify({'results': results, 'has_more': has_more})
         
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400

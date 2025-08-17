@@ -81,6 +81,11 @@
         .recent-results {
             margin: 30px 0;
             text-align: left;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
         }
         .recent-results h3 {
             text-align: center;
@@ -191,6 +196,31 @@
             align-items: center;
             gap: 10px;
         }
+        
+        .show-more-button {
+            background-color: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .show-more-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .show-more-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -219,6 +249,9 @@
             <h3>Recent Results</h3>
             <div id="resultsContainer">
                 <!-- Results will be loaded here -->
+            </div>
+            <div id="show-more-container" style="text-align: center; margin-top: 15px; display: none;">
+                <button id="show-more-btn" class="show-more-button" onclick="loadMoreResults()">Show More Results</button>
             </div>
         </div>
         
@@ -252,13 +285,21 @@
         
 
 
+        // Global variables for pagination
+        let currentOffset = 0;
+        let currentTeam = null;
+        let hasMoreResults = false;
+        
         // Load recent results for a team or main homepage
-        async function loadRecentResults(team) {
+        async function loadRecentResults(team, offset = 0, append = false) {
             try {
+                currentTeam = team;
+                currentOffset = offset;
+                
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrl = team 
-                    ? (isLocal ? `http://localhost:8080/api/${team}/recent-results` : `/api/${team}/recent-results`)
-                    : (isLocal ? `http://localhost:8080/api/recent-results` : `/api/recent-results`);
+                    ? (isLocal ? `http://localhost:8080/api/${team}/recent-results?offset=${offset}&limit=5` : `/api/${team}/recent-results?offset=${offset}&limit=5`)
+                    : (isLocal ? `http://localhost:8080/api/recent-results?offset=${offset}&limit=5` : `/api/recent-results?offset=${offset}&limit=5`);
                 
                 const response = await fetch(apiUrl, { credentials: 'include' });
                 
@@ -268,9 +309,10 @@
                 
                 const data = await response.json();
                 const resultsContainer = document.getElementById('resultsContainer');
+                const showMoreContainer = document.getElementById('show-more-container');
                 
                 if (data.results && data.results.length > 0) {
-                    resultsContainer.innerHTML = data.results.map((result, index) => `
+                    const resultsHtml = data.results.map((result, index) => `
                         <div class="result-item">
                             <div class="result-info">
                                 <div class="result-players">
@@ -288,20 +330,51 @@
                                     <div class="${result.probability >= 0.5 ? 'favorite' : 'underdog'}">P(${result.player1}): ${(result.probability * 100).toFixed(1)}%</div>
                                     <div class="${result.probability < 0.5 ? 'favorite' : 'underdog'}" style="margin-top: 3px;">P(${result.player2}): ${((1 - result.probability) * 100).toFixed(1)}%</div>
                                 </div>
-                                ${index === 0 ? `<button class="undo-button" onclick="undoLastResult('${team || ''}')">↶ Undo</button>` : ''}
+                                ${(offset === 0 && index === 0) ? `<button class="undo-button" onclick="undoLastResult('${team || ''}')">↶ Undo</button>` : ''}
                             </div>
                         </div>
                     `).join('');
+                    
+                    if (append) {
+                        resultsContainer.innerHTML += resultsHtml;
+                    } else {
+                        resultsContainer.innerHTML = resultsHtml;
+                    }
+                    
+                    // Show/hide "Show More" button
+                    hasMoreResults = data.has_more;
+                    if (hasMoreResults) {
+                        showMoreContainer.style.display = 'block';
+                    } else {
+                        showMoreContainer.style.display = 'none';
+                    }
                 } else {
-                    resultsContainer.innerHTML = '<div class="no-results">No recent results yet. Start playing some games!</div>';
+                    if (!append) {
+                        resultsContainer.innerHTML = '<div class="no-results">No recent results yet. Start playing some games!</div>';
+                    }
+                    showMoreContainer.style.display = 'none';
                 }
-                
-                // Results section is always visible now
                 
             } catch (error) {
                 console.error('Error loading recent results:', error);
                 const resultsContainer = document.getElementById('resultsContainer');
-                resultsContainer.innerHTML = '<div class="no-results">Unable to load recent results</div>';
+                if (!append) {
+                    resultsContainer.innerHTML = '<div class="no-results">Unable to load recent results</div>';
+                }
+            }
+        }
+        
+        // Load more results function
+        async function loadMoreResults() {
+            const showMoreBtn = document.getElementById('show-more-btn');
+            showMoreBtn.disabled = true;
+            showMoreBtn.textContent = 'Loading...';
+            
+            try {
+                await loadRecentResults(currentTeam, currentOffset + 5, true);
+            } finally {
+                showMoreBtn.disabled = false;
+                showMoreBtn.textContent = 'Show More Results';
             }
         }
 
