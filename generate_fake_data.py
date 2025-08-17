@@ -231,8 +231,9 @@ def simulate_games_for_game_type(game_type: str, total_games: int = 100):
         write_new_rating(p1, new_rating1, p2, score, game_type, colour='white', timestamp=ts_str)
         write_new_rating(p2, new_rating2, p1, (1-score), game_type, colour='black', timestamp=ts_str)
         
-        # Log result to recent results (with properly formatted timestamp)
-        log_result_to_team(p1, p2, result_str, game_type, None, probability, timestamp=ts_str)
+        # Log result to recent results (with properly formatted timestamp and rating changes)
+        log_result_to_team(p1, p2, result_str, game_type, None, probability, timestamp=ts_str, 
+                          player1_change=rating_change1, player2_change=rating_change2)
         
         # Mock response for consistency
         response = {
