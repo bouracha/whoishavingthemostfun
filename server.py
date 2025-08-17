@@ -100,17 +100,17 @@ def serve_static(filename):
 @app.route('/chess')
 def serve_chess():
     """Serve chess page with clean URL"""
-    return send_from_directory(WEB_DIR, 'chess.html')
+    return send_from_directory(WEB_DIR, 'game.html')
 
 @app.route('/pingpong')
 def serve_pingpong():
     """Serve ping pong page with clean URL"""
-    return send_from_directory(WEB_DIR, 'pingpong.html')
+    return send_from_directory(WEB_DIR, 'game.html')
 
 @app.route('/backgammon')
 def serve_backgammon():
     """Serve backgammon page with clean URL"""
-    return send_from_directory(WEB_DIR, 'backgammon.html')
+    return send_from_directory(WEB_DIR, 'game.html')
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -797,18 +797,14 @@ def serve_team_home(team):
 
 @app.route('/t/<team>/<game>')
 def serve_team_game(team, game):
-    # Serve the same game pages under team-prefixed clean URLs
+    # Serve the unified game page under team-prefixed clean URLs
     try:
         team = sanitize_team(team)
     except ValueError:
         pass
     game = (game or '').lower()
-    if game == 'chess':
-        return send_from_directory(WEB_DIR, 'chess.html')
-    if game == 'pingpong':
-        return send_from_directory(WEB_DIR, 'pingpong.html')
-    if game == 'backgammon':
-        return send_from_directory(WEB_DIR, 'backgammon.html')
+    if game in ['chess', 'pingpong', 'backgammon']:
+        return send_from_directory(WEB_DIR, 'game.html')
     return jsonify({'error': 'Unknown game'}), 404
 
 @app.route('/api/undo-last-result', methods=['POST'])
