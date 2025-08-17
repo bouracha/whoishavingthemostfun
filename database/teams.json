@@ -1,1 +1,1 @@
-{"bourached": {"password_hash": "scrypt:32768:8:1$bv57I4USDuuTY3hf$7892cf6d5aa13a9b2bf9f985dc6c053a9d1796d1e66e2b4cd01c592b3998deb38aa495b735e154e0f5b7904663730164bc1698f3acaa97060f16b30d2c1bdb8f"}}
+{"bourached": {"password_hash": "pbkdf2:sha256:1000000$rzu1wfYVCQYZNEsc$9f41ea54554ee3ed368aabdf5732ba8ccf87e5b7167f271ac8e41596056c1de0"}}

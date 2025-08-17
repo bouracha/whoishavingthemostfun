@@ -52,3 +52,8 @@ This is a web-based ELO rating system for tracking game ratings across multiple 
 - **Multi-game support**: Chess (active), Ping Pong (active), Backgammon (placeholder)
 - **Responsive design**: Works on desktop and mobile
 - **Zero setup**: No user configuration or certificate acceptance required
+
+## Testing Guidelines
+- **Write only specific tests requested**: When writing tests, only create the very specific test the user is asking for
+- **No comprehensive test suites**: Do not create broad test coverage or multiple test files unless explicitly requested
+- **Focus on targeted testing**: Each test should address exactly what the user wants to verify

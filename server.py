@@ -20,7 +20,7 @@ from datetime import timedelta
 sys.path.append(os.path.join(os.path.dirname(__file__), 'code'))
 
 # Import our existing functions
-from update import make_new_player, delete_last_entry, undo_last_result
+from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts
 
 app = Flask(__name__)
 # Secret key for sessions (override via env in production)
@@ -339,6 +339,8 @@ def format_player_name_for_display(player_name: str) -> str:
     
     return display_name
 
+# Removed on-the-fly rating change calculation; changes are now persisted in results.csv
+
 def _generate_result_commentary(player1_display: str, player2_display: str, result: str, probability: float, timestamp: str) -> str:
     """Create fun commentary for a result. probability is P(player1 wins)."""
     # Draw case
@@ -347,43 +349,81 @@ def _generate_result_commentary(player1_display: str, player2_display: str, resu
         lower_prob = probability if probability < 0.5 else (1 - probability)
         prob_pct = f"<span class='inline-probability'>{lower_prob * 100:.1f}%</span>"
         draw_comments = [
-            f"It was a fierce battle, but a peaceful result! A good result for {lower_player}, who had only a {prob_pct} chance of winning.",
-            f"An honorable draw! {lower_player} can be pleased with this outcome, having faced {prob_pct} odds.",
-            f"Both warriors earned their stripes in this {prob_pct} underdog story that ended in a draw!",
-            f"A diplomatic conclusion! {lower_player} held their ground despite {prob_pct} winning chances."
+            f"🤝 It was a fierce battle, but a peaceful result! A good result for {lower_player}, who had only a {prob_pct} chance of winning.",
+            f"🤝 An honorable draw! {lower_player} can be pleased with this outcome, having faced {prob_pct} odds.",
+            f"🤝 Both warriors earned their stripes in this {prob_pct} underdog story that ended in a draw!",
+            f"🤝 A diplomatic conclusion! {lower_player} held their ground despite {prob_pct} winning chances.",
+            f"🤝 Peace treaty signed! {lower_player} survives the {prob_pct} odds and lives to fight another day!",
+            f"🤝 Stalemate! {lower_player} proves that even with {prob_pct} odds, you can't always lose!",
+            f"🤝 Mutual respect achieved! {lower_player} shows that {prob_pct} odds are just numbers on paper!",
+            f"🤝 Draw your weapons... and then put them away! {lower_player} escapes with dignity despite {prob_pct} odds!",
+            f"🤝 A gentleman's agreement! {lower_player} demonstrates that {prob_pct} odds don't mean certain defeat!",
+            f"🤝 Both players leave with their honor intact! {lower_player} defies the {prob_pct} probability gods!"
         ]
         return _deterministic_choice(draw_comments, key=f"{timestamp}-{player1_display}-{player2_display}-{result}-{probability}")
 
     # Decisive cases
     winner = player1_display if result == '1-0' else player2_display
+    loser = player2_display if result == '1-0' else player1_display
     winner_prob = probability if result == '1-0' else (1 - probability)
     prob_pct = f"<span class='inline-probability'>{winner_prob * 100:.1f}%</span>"
 
     if winner_prob >= 0.8:
         comments = [
-            f"{winner} cruised to victory with {prob_pct} odds. As expected!",
-            f"No surprises here! {winner} dominated with {prob_pct} probability.",
-            f"{winner} delivered the expected result with {prob_pct} chances. Textbook!",
+            f"👑 {winner} cruised to victory with {prob_pct} odds. As expected!",
+            f"👑 No surprises here! {winner} dominated with {prob_pct} probability.",
+            f"👑 {winner} delivered the expected result with {prob_pct} chances. Textbook!",
+            f"👑 {winner} made it look easy with {prob_pct} odds. {loser} never stood a chance!",
+            f"👑 {winner} flexed their {prob_pct} muscles and crushed the competition!",
+            f"👑 {winner} showed why they had {prob_pct} odds - pure dominance!",
+            f"👑 {winner} steamrolled through with {prob_pct} probability. {loser} is probably still recovering!",
+            f"👑 {winner} proved that {prob_pct} odds aren't just numbers - they're a promise!",
+            f"👑 {winner} made {loser} question their life choices with that {prob_pct} performance!",
+            f"👑 {winner} didn't just win, they sent a message with {prob_pct} authority!"
         ]
     elif winner_prob >= 0.65:
         comments = [
-            f"{winner} lived up to expectations with a solid {prob_pct} favorite win!",
-            f"The favorite prevails! {winner} with {prob_pct} odds gets the W.",
-            f"{winner} proved why they had {prob_pct} winning chances. Well played!",
+            f"🏆 {winner} lived up to expectations with a solid {prob_pct} favorite win!",
+            f"🏆 The favorite prevails! {winner} with {prob_pct} odds gets the W.",
+            f"🏆 {winner} proved why they had {prob_pct} winning chances. Well played!",
+            f"🏆 {winner} showed their class with a {prob_pct} probability victory!",
+            f"🏆 {winner} made the {prob_pct} odds look generous to {loser}!",
+            f"🏆 {winner} demonstrated that {prob_pct} odds are earned, not given!",
+            f"🏆 {winner} took care of business with {prob_pct} efficiency!",
+            f"🏆 {winner} proved that {prob_pct} odds are just the beginning of their story!",
+            f"🏆 {winner} made {loser} work for every point, despite {prob_pct} odds!",
+            f"🏆 {winner} showed why they're the {prob_pct} favorite - pure skill!"
         ]
     elif winner_prob >= 0.35:
         comments = [
-            f"What a nail-biter! {winner} edges it out with {prob_pct} odds.",
-            f"{winner} squeaks by in this {prob_pct} coin-flip battle!",
-            f"Close call! {winner} with {prob_pct} chances takes the victory.",
-            f"Anyone's game, but {winner} ({prob_pct}) emerges victorious!",
+            f"⚡ What a nail-biter! {winner} edges it out with {prob_pct} odds.",
+            f"⚡ {winner} squeaks by in this {prob_pct} coin-flip battle!",
+            f"⚡ Close call! {winner} with {prob_pct} chances takes the victory.",
+            f"⚡ Anyone's game, but {winner} ({prob_pct}) emerges victorious!",
+            f"⚡ {winner} found a way to win in this {prob_pct} thriller!",
+            f"⚡ {winner} proved that {prob_pct} odds are just a suggestion!",
+            f"⚡ {winner} made the most of their {prob_pct} chances!",
+            f"⚡ {winner} showed that {prob_pct} probability can be enough!",
+            f"⚡ {winner} turned {prob_pct} odds into pure gold!",
+            f"⚡ {winner} made {loser} sweat despite {prob_pct} odds!"
         ]
     else:
         comments = [
             f"🚨 UPSET ALERT! {winner} shocks everyone with only {prob_pct} odds!",
-            f"Against all odds! {winner} pulls off the miracle with {prob_pct} chances!",
-            f"David vs Goliath moment! {winner} defies {prob_pct} probability!",
-            f"Stunning upset! {winner} had just {prob_pct} odds but found a way!",
+            f"🚨 Against all odds! {winner} pulls off the miracle with {prob_pct} chances!",
+            f"🚨 David vs Goliath moment! {winner} defies {prob_pct} probability!",
+            f"🚨 Stunning upset! {winner} had just {prob_pct} odds but found a way!",
+            f"🚨 {winner} just made {loser} question everything with {prob_pct} odds!",
+            f"🚨 {winner} pulled a rabbit out of a hat with {prob_pct} probability!",
+            f"🚨 {winner} made the impossible possible with {prob_pct} odds!",
+            f"🚨 {winner} just wrote a new chapter in the underdog story with {prob_pct} chances!",
+            f"🚨 {winner} proved that {prob_pct} odds are just numbers on a screen!",
+            f"🚨 {winner} made {loser} eat their words with {prob_pct} determination!",
+            f"🚨 {winner} just became a legend with {prob_pct} odds!",
+            f"🚨 {winner} showed that miracles happen with {prob_pct} probability!",
+            f"🚨 {winner} made the {prob_pct} underdogs proud!",
+            f"🚨 {winner} just pulled off the heist of the century with {prob_pct} odds!",
+            f"🚨 {winner} made {loser} look like they forgot how to play with {prob_pct} skill!"
         ]
     return _deterministic_choice(comments, key=f"{timestamp}-{player1_display}-{player2_display}-{result}-{probability}")
 
@@ -416,6 +456,28 @@ def get_recent_results_main():
             timestamp_str = row['timestamp'].strftime('%Y-%m-%d %H:%M')
             probability = float(row['probability'])
             
+            # Read persisted rating changes from results.csv (if present)
+            try:
+                p1c = row['player1_change'] if 'player1_change' in df_sorted.columns else None
+            except Exception:
+                p1c = None
+            try:
+                p2c = row['player2_change'] if 'player2_change' in df_sorted.columns else None
+            except Exception:
+                p2c = None
+            
+            # Normalize to int or None
+            def to_int_or_none(v):
+                try:
+                    import pandas as _pd
+                    if v is None or (isinstance(v, float) and _pd.isna(v)):
+                        return None
+                    return int(round(float(v)))
+                except Exception:
+                    return None
+            player1_change = to_int_or_none(p1c)
+            player2_change = to_int_or_none(p2c)
+            
             # Generate commentary on the backend
             commentary = _generate_result_commentary(
                 player1_display, player2_display, row['result'], probability, timestamp_str
@@ -428,7 +490,9 @@ def get_recent_results_main():
                 'player2': player2_display,
                 'result': row['result'],
                 'probability': probability,
-                'commentary': commentary
+                'commentary': commentary,
+                'player1_change': player1_change,
+                'player2_change': player2_change
             })
         
         return jsonify({'results': results})
@@ -468,6 +532,28 @@ def get_recent_results(team):
             timestamp_str = row['timestamp'].strftime('%Y-%m-%d %H:%M')
             probability = float(row['probability'])
             
+            # Read persisted rating changes from results.csv (if present)
+            try:
+                p1c = row['player1_change'] if 'player1_change' in df_sorted.columns else None
+            except Exception:
+                p1c = None
+            try:
+                p2c = row['player2_change'] if 'player2_change' in df_sorted.columns else None
+            except Exception:
+                p2c = None
+            
+            # Normalize to int or None
+            def to_int_or_none(v):
+                try:
+                    import pandas as _pd
+                    if v is None or (isinstance(v, float) and _pd.isna(v)):
+                        return None
+                    return int(round(float(v)))
+                except Exception:
+                    return None
+            player1_change = to_int_or_none(p1c)
+            player2_change = to_int_or_none(p2c)
+            
             # Generate commentary on the backend
             commentary = _generate_result_commentary(
                 player1_display, player2_display, row['result'], probability, timestamp_str
@@ -480,7 +566,9 @@ def get_recent_results(team):
                 'player2': player2_display,
                 'result': row['result'],
                 'probability': probability,
-                'commentary': commentary
+                'commentary': commentary,
+                'player1_change': player1_change,
+                'player2_change': player2_change
             })
         
         return jsonify({'results': results})
@@ -516,37 +604,20 @@ def submit_result(game):
         else:  # 1/2-1/2
             score = 0.5
         
-        # Change to code directory for script execution
-        original_cwd = os.getcwd()
-        os.chdir(CODE_DIR)
+        # Use the submit_game_with_charts function directly (includes rating changes)
+        result_data = submit_game_with_charts(player1, player2, result, game)
         
-        try:
-            # Call main.py with the game result
-            subprocess.run([
-                sys.executable, 'main.py',
-                '--game', game,
-                '--player1', player1,
-                '--player2', player2,
-                '--score', str(score)
-            ], check=True, capture_output=True, text=True)
-            
-            # Generate updated charts
-            generate_charts(game)
-            
+        if result_data.get('success'):
             return jsonify({
                 'success': True,
-                'message': f'Result submitted: {player1} vs {player2} ({result})',
+                'message': result_data['message'],
                 'game': game,
                 'player1': player1,
                 'player2': player2,
                 'result': result
             })
-            
-        except subprocess.CalledProcessError as e:
-            return jsonify({'error': f'Failed to submit result: {e.stderr}'}), 500
-        finally:
-            # Restore original working directory
-            os.chdir(original_cwd)
+        else:
+            return jsonify({'error': result_data.get('error', 'Unknown error')}), 500
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -571,31 +642,18 @@ def submit_result_team(team, game):
 
         score = 1.0 if result == '1-0' else 0.0 if result == '0-1' else 0.5
 
-        original_cwd = os.getcwd()
-        os.chdir(CODE_DIR)
-        try:
-            # Ensure team directories exist for data and output
-            os.makedirs(os.path.join('..', 'database', team, game), exist_ok=True)
-            os.makedirs(os.path.join('..', 'web', team), exist_ok=True)
-
-            # Call main.py with team awareness
-            subprocess.run([
-                sys.executable, 'main.py',
-                '--game', game,
-                '--player1', player1,
-                '--player2', player2,
-                '--score', str(score),
-                '--team', team
-            ], check=True, capture_output=True, text=True)
-
-            # Generate updated charts for this team
-            generate_charts_for_team(team, game)
-
-            return jsonify({'success': True, 'message': f'Result submitted: {player1} vs {player2} ({result})', 'game': game, 'team': team})
-        except subprocess.CalledProcessError as e:
-            return jsonify({'error': f'Failed to submit result: {e.stderr}'}), 500
-        finally:
-            os.chdir(original_cwd)
+        # Use the submit_game_with_charts function directly (includes rating changes)
+        result_data = submit_game_with_charts(player1, player2, result, game, team=team)
+        
+        if result_data.get('success'):
+            return jsonify({
+                'success': True, 
+                'message': result_data['message'], 
+                'game': game, 
+                'team': team
+            })
+        else:
+            return jsonify({'error': result_data.get('error', 'Unknown error')}), 500
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400
     except Exception as e:

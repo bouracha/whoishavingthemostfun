@@ -105,6 +105,18 @@
             font-size: 16px;
             color: #333;
         }
+        
+        .rating-change {
+            font-weight: bold;
+        }
+        
+        .rating-change.positive {
+            color: #28a745;
+        }
+        
+        .rating-change.negative {
+            color: #dc3545;
+        }
         .result-details {
             font-size: 14px;
             color: #666;
@@ -262,7 +274,7 @@
                         <div class="result-item">
                             <div class="result-info">
                                 <div class="result-players">
-                                    ${result.player1} vs ${result.player2} (${result.result})
+                                    ${result.player1} ${result.player1_change !== null && result.player1_change !== undefined ? `<span class="rating-change ${result.player1_change > 0 ? 'positive' : 'negative'}">(${result.player1_change > 0 ? '+' : ''}${result.player1_change})</span>` : ''} vs ${result.player2} ${result.player2_change !== null && result.player2_change !== undefined ? `<span class="rating-change ${result.player2_change > 0 ? 'positive' : 'negative'}">(${result.player2_change > 0 ? '+' : ''}${result.player2_change})</span>` : ''} (${result.result})
                                 </div>
                                 <div class="result-details">
                                     ${result.game} • ${result.timestamp}

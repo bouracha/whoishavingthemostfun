@@ -185,7 +185,17 @@ def make_new_player(
     else:
         print(f"Player '{player_name}' already exists for game '{game}' - skipping creation")
 
-def log_result_to_team(player1, player2, result, game, team, probability, timestamp: Optional[str] = None):
+def log_result_to_team(
+    player1,
+    player2,
+    result,
+    game,
+    team,
+    probability,
+    timestamp: Optional[str] = None,
+    player1_change: Optional[float] = None,
+    player2_change: Optional[float] = None,
+):
     """
     Log a game result to the results.csv file for recent results display.
     Works for both team games and main database games.
@@ -202,11 +212,30 @@ def log_result_to_team(player1, player2, result, game, team, probability, timest
     else:
         results_file = f"{database_path}/results.csv"
     
-    # Create headers if file doesn't exist
+    # Create headers if file doesn't exist (with change columns)
     if not os.path.exists(results_file):
-        headers = ['timestamp', 'game', 'player1', 'player2', 'result', 'probability']
+        headers = [
+            'timestamp', 'game', 'player1', 'player2', 'result', 'probability',
+            'player1_change', 'player2_change'
+        ]
         df_headers = pd.DataFrame(columns=headers)
         df_headers.to_csv(results_file, index=False)
+    else:
+        # Ensure file has the new change columns; if missing, backfill them
+        try:
+            existing = pd.read_csv(results_file)
+            changed = False
+            if 'player1_change' not in existing.columns:
+                existing['player1_change'] = pd.NA
+                changed = True
+            if 'player2_change' not in existing.columns:
+                existing['player2_change'] = pd.NA
+                changed = True
+            if changed:
+                existing.to_csv(results_file, index=False)
+        except Exception:
+            # If anything goes wrong, proceed without altering existing file
+            pass
     
     # Prepare the new result entry - always use UK time
     uk_time = datetime.utcnow()
@@ -220,14 +249,19 @@ def log_result_to_team(player1, player2, result, game, team, probability, timest
         'player1': player1,
         'player2': player2,
         'result': result,
-        'probability': f"{probability:.3f}"
+        'probability': f"{probability:.3f}",
+        'player1_change': int(round(player1_change)) if player1_change is not None else pd.NA,
+        'player2_change': int(round(player2_change)) if player2_change is not None else pd.NA,
     }
     
     # Append to the results file
     df_new = pd.DataFrame([new_entry])
     df_new.to_csv(results_file, mode='a', header=False, index=False)
     
-    print(f"Logged result to {results_file}: {player1} vs {player2} ({result}) - probability: {probability:.3f}")
+    print(
+        f"Logged result to {results_file}: {player1} vs {player2} ({result}) - probability: {probability:.3f}, "
+        f"changes: ({new_entry['player1_change']}, {new_entry['player2_change']})"
+    )
 
 def log_deleted_result(player1, player2, result, game, team=None, probability=None, original_timestamp=None, deletion_timestamp=None):
     """
@@ -535,8 +569,18 @@ def submit_game_with_charts(player1, player2, result, game, team=None, timestamp
         write_new_rating(player1, new_rating1, player2, score, game, colour='white', team=team, timestamp=timestamp)
         write_new_rating(player2, new_rating2, player1, (1-score), game, colour='black', team=team, timestamp=timestamp)
         
-        # Log result to recent results
-        log_result_to_team(player1, player2, result, game, team, probability, timestamp=timestamp)
+        # Log result to recent results (persist per-game rating deltas)
+        log_result_to_team(
+            player1,
+            player2,
+            result,
+            game,
+            team,
+            probability,
+            timestamp=timestamp,
+            player1_change=rating_change1,
+            player2_change=rating_change2,
+        )
         
         # Generate charts (leaderboard and rating progress)
         generate_charts_backend(game, team)

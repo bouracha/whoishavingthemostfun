@@ -35,7 +35,11 @@ def get_middle_rating(times, ratings):
     middle_index = len(times) // 2
     return times[middle_index], ratings[middle_index]
 
+
+
 name = sys.argv[0]
+
+
 
 def plot_rating(path_to_file, label):
   data = pd.read_csv(path_to_file)
@@ -197,7 +201,7 @@ if all_times:
             alpha = 0.7 if is_inactive else 1.0
             plt.plot(mpl_times, ratings_with_end, '-', color=color, linewidth=2.5, alpha=alpha)
             
-                        # Plot dots at all key points (start, each game, end)
+            # Plot dots at all key points (start, each game, end)
             plt.plot(mpl_times, ratings_with_end, 'o', color=color, markersize=8, markerfacecolor=color, markeredgecolor='white', markeredgewidth=2, alpha=alpha)
             
             # Add player name at the middle of their line
