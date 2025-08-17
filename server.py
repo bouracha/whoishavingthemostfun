@@ -365,8 +365,12 @@ def _generate_result_commentary(player1_display: str, player2_display: str, resu
     # Decisive cases
     winner = player1_display if result == '1-0' else player2_display
     loser = player2_display if result == '1-0' else player1_display
+    # Use the correct probability for the winner
     winner_prob = probability if result == '1-0' else (1 - probability)
     prob_pct = f"<span class='inline-probability'>{winner_prob * 100:.1f}%</span>"
+    
+    # Debug: Let's see what's happening
+    print(f"DEBUG: {player1_display} vs {player2_display}, result={result}, P(player1)={probability:.3f}, winner={winner}, winner_prob={winner_prob:.3f}")
 
     if winner_prob >= 0.8:
         comments = [
