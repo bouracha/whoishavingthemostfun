@@ -16,7 +16,7 @@ plt.rcParams['figure.figsize'] = (12, 8)
 plt.rcParams['font.size'] = 12
 plt.rcParams['axes.grid'] = True
 plt.rcParams['grid.alpha'] = 0.3
-plt.rcParams['figure.dpi'] = 72  # Lower DPI to reduce memory usage
+plt.rcParams['figure.dpi'] = 150  # Balanced DPI for good quality and reasonable file size
 plt.rcParams['font.family'] = 'DejaVu Sans'
 plt.rcParams['font.sans-serif'] = [
     'DejaVu Sans',
@@ -295,5 +295,5 @@ else:
     else:
         output_file = f'../web/{game_file}'
 
-plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+    plt.savefig(output_file, dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
 plt.close()  # Close the figure to free memory

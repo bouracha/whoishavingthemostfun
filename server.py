@@ -100,17 +100,17 @@ def serve_static(filename):
 @app.route('/chess')
 def serve_chess():
     """Serve chess page with clean URL"""
-    return send_from_directory(WEB_DIR, 'chess.html')
+    return send_from_directory(WEB_DIR, 'game.html')
 
 @app.route('/pingpong')
 def serve_pingpong():
     """Serve ping pong page with clean URL"""
-    return send_from_directory(WEB_DIR, 'pingpong.html')
+    return send_from_directory(WEB_DIR, 'game.html')
 
 @app.route('/backgammon')
 def serve_backgammon():
     """Serve backgammon page with clean URL"""
-    return send_from_directory(WEB_DIR, 'backgammon.html')
+    return send_from_directory(WEB_DIR, 'game.html')
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -797,19 +797,90 @@ def serve_team_home(team):
 
 @app.route('/t/<team>/<game>')
 def serve_team_game(team, game):
-    # Serve the same game pages under team-prefixed clean URLs
+    """Serve team game page"""
     try:
         team = sanitize_team(team)
-    except ValueError:
-        pass
-    game = (game or '').lower()
-    if game == 'chess':
-        return send_from_directory(WEB_DIR, 'chess.html')
-    if game == 'pingpong':
-        return send_from_directory(WEB_DIR, 'pingpong.html')
-    if game == 'backgammon':
-        return send_from_directory(WEB_DIR, 'backgammon.html')
-    return jsonify({'error': 'Unknown game'}), 404
+        assert_team_access(team)
+        
+        # Check if game directory exists
+        game_dir = os.path.join(DATABASE_DIR, team, game)
+        if not os.path.exists(game_dir):
+            return jsonify({'error': 'Unknown game'}), 404
+        
+        return send_from_directory(WEB_DIR, 'game.html')
+        
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/games')
+def get_available_games():
+    """Get list of available games by scanning database directory"""
+    try:
+        games = []
+        
+        # Scan main database directory for game folders
+        if os.path.exists(DATABASE_DIR):
+            for item in os.listdir(DATABASE_DIR):
+                item_path = os.path.join(DATABASE_DIR, item)
+                if os.path.isdir(item_path) and item not in ['teams']:
+                    # Check if it's a valid game directory (has at least one CSV file)
+                    csv_files = [f for f in os.listdir(item_path) if f.endswith('.csv')]
+                    if csv_files:
+                        games.append(item)
+        
+        # Also scan team directories for additional games
+        if os.path.exists(DATABASE_DIR):
+            for item in os.listdir(DATABASE_DIR):
+                item_path = os.path.join(DATABASE_DIR, item)
+                if os.path.isdir(item_path) and item not in ['teams', 'test_data'] and not item.endswith('.csv'):
+                    # This might be a team directory
+                    for game in os.listdir(item_path):
+                        game_path = os.path.join(item_path, game)
+                        if os.path.isdir(game_path) and game not in games:
+                            csv_files = [f for f in os.listdir(game_path) if f.endswith('.csv')]
+                            if csv_files:
+                                games.append(game)
+        
+        # Remove duplicates and sort
+        games = sorted(list(set(games)))
+        
+        # Load game metadata from config file
+        game_metadata = {}
+        config_file = os.path.join(os.path.dirname(__file__), 'config', 'games.json')
+        try:
+            with open(config_file, 'r') as f:
+                config_data = json.load(f)
+                game_metadata = config_data.get('games', {})
+                defaults = config_data.get('defaults', {})
+        except Exception as e:
+            print(f"Warning: Could not load games config: {e}")
+            # Fallback metadata
+            game_metadata = {
+                'chess': {'name': 'Chess', 'emoji': '♔'},
+                'pingpong': {'name': 'Ping Pong', 'emoji': '🏓'},
+                'backgammon': {'name': 'Backgammon', 'emoji': '🎲'}
+            }
+            defaults = {'emoji': '🎮', 'description': 'Rating system game'}
+        
+        # Build response with metadata
+        games_with_metadata = []
+        for game in games:
+            metadata = game_metadata.get(game, {})
+            games_with_metadata.append({
+                'id': game,
+                'name': metadata.get('name', game.replace('_', ' ').title()),
+                'emoji': metadata.get('emoji', defaults.get('emoji', '🎮')),
+                'description': metadata.get('description', defaults.get('description', 'Rating system game')),
+                'leaderboardImage': f'{game}_leaderboard.png',
+                'ratingsImage': f'{game}_ratings_progress.png'
+            })
+        
+        return jsonify({'games': games_with_metadata})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/undo-last-result', methods=['POST'])
 def undo_last_result_main():

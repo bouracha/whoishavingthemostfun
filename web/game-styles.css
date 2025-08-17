@@ -59,6 +59,13 @@ img {
     height: auto;
 }
 
+/* Chart images should have a specific size */
+#displayImage {
+    width: 800px;
+    height: auto;
+    max-width: 100%;
+}
+
 .main-content {
     background: white;
     border-radius: 12px;

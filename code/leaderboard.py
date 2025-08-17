@@ -16,7 +16,7 @@ plt.rcParams['figure.figsize'] = (10, 8)
 plt.rcParams['font.size'] = 12
 plt.rcParams['axes.grid'] = True
 plt.rcParams['grid.alpha'] = 0.3
-plt.rcParams['figure.dpi'] = 72  # Lower DPI to reduce memory usage
+plt.rcParams['figure.dpi'] = 150  # Balanced DPI for good quality and reasonable file size
 plt.rcParams['font.family'] = 'DejaVu Sans'
 plt.rcParams['font.sans-serif'] = [
     'DejaVu Sans',
@@ -82,26 +82,10 @@ def calculate_text_width(ax, player_name, rating, position):
     return total_text_width
 
 def add_player_image(ax, x, y, player_name, rating, position, total_players, max_size=0.08, min_size=0.02):
-    """Add a player image with dynamic sizing based on text width and player count"""
+    """Add a player image with uniform sizing"""
     try:
-        # Calculate optimal size based on text width
-        text_width = calculate_text_width(ax, player_name, rating, position)
-        
-        # Scale down based on number of players to prevent overcrowding
-        # More aggressive scaling for crowded leaderboards
-        if total_players <= 5:
-            crowd_factor = 1.0
-        elif total_players <= 10:
-            crowd_factor = 0.7
-        elif total_players <= 15:
-            crowd_factor = 0.5
-        else:
-            crowd_factor = 0.3  # Very small images for 15+ players
-        
-        # Scale image size relative to text width and crowd factor
-        # Aim for image to be about 40-60% of text width depending on crowd
-        text_based_size = text_width * (0.4 + 0.2 * crowd_factor)
-        optimal_size = min(max_size * crowd_factor, max(min_size, text_based_size))
+        # Use a fixed uniform size for all player images
+        uniform_size = 0.06  # Fixed size for all player images
         
         # Determine the correct player image path based on where we're running from
         if os.path.exists('web'):
@@ -121,23 +105,22 @@ def add_player_image(ax, x, y, player_name, rating, position, total_players, max
             img = plt.imread(default_image_path)
         else:
             # If no default image exists either, use placeholder
-            circle = plt.Circle((x, y), optimal_size*0.5, facecolor='#CCCCCC', edgecolor='#999999', linewidth=2)
+            circle = plt.Circle((x, y), uniform_size*0.5, facecolor='#CCCCCC', edgecolor='#999999', linewidth=2)
             ax.add_patch(circle)
-            ax.text(x, y, "?", fontsize=int(optimal_size*100), fontweight='bold', ha='center', va='center', color='#666666')
+            ax.text(x, y, "?", fontsize=int(uniform_size*100), fontweight='bold', ha='center', va='center', color='#666666')
             return
             
-        # Add the image with calculated optimal size
-        imagebox = OffsetImage(img, zoom=optimal_size)
+        # Add the image with uniform size
+        imagebox = OffsetImage(img, zoom=uniform_size)
         ab = AnnotationBbox(imagebox, (x, y), frameon=False)
         ax.add_artist(ab)
             
     except Exception as e:
         print(f"Could not load player image for {player_name}: {e}")
-        # Fallback to placeholder circle with dynamic size
-        optimal_size = min(max_size, max(min_size, 0.05))  # Default fallback size
-        circle = plt.Circle((x, y), optimal_size*0.5, facecolor='#CCCCCC', edgecolor='#999999', linewidth=2)
+        # Fallback to placeholder circle with uniform size
+        circle = plt.Circle((x, y), uniform_size*0.5, facecolor='#CCCCCC', edgecolor='#999999', linewidth=2)
         ax.add_patch(circle)
-        ax.text(x, y, "?", fontsize=int(optimal_size*100), fontweight='bold', ha='center', va='center', color='#666666')
+        ax.text(x, y, "?", fontsize=int(uniform_size*100), fontweight='bold', ha='center', va='center', color='#666666')
 
 def get_current_ratings(game_folder):
     """Get current ratings for all players in a game folder"""
@@ -313,7 +296,7 @@ def create_leaderboard(game_folder, excluded_players=None, title=None):
             output_file = f'../web/{team}/{game_only}_leaderboard.png'
         else:
             output_file = f'../web/{game_folder}_leaderboard.png'
-    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+    plt.savefig(output_file, dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close()
     
     print(f"Leaderboard saved as {output_file}")

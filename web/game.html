@@ -1,0 +1,411 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Game Elo Dashboard</title>
+    <link rel="stylesheet" href="/game-styles.css">
+</head>
+<body>
+    <a href="#" class="home-button" id="homeButton" onclick="goHome()">🏠 Home</a>
+    
+    <div class="main-content">
+        <div class="action-panel">
+            <h3 id="gameTitle">Game Management</h3>
+            <div class="action-buttons">
+                <button class="add-player-btn" onclick="openAddPlayerModal()">➕ Add Player</button>
+                <button class="add-result-btn" onclick="openAddResultModal()">🎮 Add Game Result</button>
+            </div>
+        </div>
+        
+        <div class="action-panel">
+            <h3>📊 Charts</h3>
+            <div class="action-buttons">
+                <button class="button active" onclick="showLeaderboard()">🏆 Leaderboard</button>
+                <button class="button" onclick="showRatingsProgress()">📈 Ratings Progress</button>
+            </div>
+        </div>
+        
+        <div id="imageContainer">
+            <img id="displayImage" src="" alt="Game Leaderboard">
+        </div>
+    </div>
+
+    <!-- Add Player Modal -->
+    <div id="addPlayerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="addPlayerTitle">Add New Player</h3>
+                <span class="close" onclick="closeAddPlayerModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label for="playerNameInput">Player Name:</label>
+                <input type="text" id="playerNameInput" placeholder="Enter player name" maxlength="20">
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeAddPlayerModal()">Cancel</button>
+                <button class="modal-btn confirm" onclick="addPlayer()">Add Player</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Result Modal -->
+    <div id="addResultModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="addResultTitle">Add Game Result</h3>
+                <span class="close" onclick="closeAddResultModal()">&times;</span>
+            </div>
+            <div class="players-row">
+                <div class="form-group player-select">
+                    <label for="player1Select">Player 1:</label>
+                    <select id="player1Select">
+                        <option value="">Select Player 1</option>
+                    </select>
+                </div>
+                <div class="vs-divider">VS</div>
+                <div class="form-group player-select">
+                    <label for="player2Select">Player 2:</label>
+                    <select id="player2Select">
+                        <option value="">Select Player 2</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Result:</label>
+                <div class="radio-group">
+                    <div class="radio-row">
+                        <label class="radio-option">
+                            <input type="radio" name="result" value="1-0" id="result1-0">
+                            <div class="radio-custom">
+                                <span>1-0<br><small>Player 1 wins</small></span>
+                            </div>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="result" value="0-1" id="result0-1">
+                            <div class="radio-custom">
+                                <span>0-1<br><small>Player 2 wins</small></span>
+                            </div>
+                        </label>
+                    </div>
+                    <label class="radio-option full-width">
+                        <input type="radio" name="result" value="1/2-1/2" id="result1/2-1/2">
+                        <div class="radio-custom">
+                            <span>1/2-1/2<br><small>Draw</small></span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeAddResultModal()">Cancel</button>
+                <button class="modal-btn confirm" onclick="submitResult()">Submit Result</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/game-common.js"></script>
+    <script>
+        // Dynamic game configuration - will be loaded from API
+        let gameConfig = {};
+        let availableGames = [];
+
+        // Get game type and team from URL
+        function getGameType() {
+            const path = window.location.pathname;
+            if (path.includes('/chess')) return 'chess';
+            if (path.includes('/pingpong')) return 'pingpong';
+            if (path.includes('/backgammon')) return 'backgammon';
+            return 'chess'; // default
+        }
+
+        function getTeam() {
+            const path = window.location.pathname;
+            const match = path.match(/\/t\/([^\/]+)/);
+            return match ? match[1] : null;
+        }
+
+        function getApiEndpoints() {
+            const gameType = getGameType();
+            const team = getTeam();
+            
+            if (team) {
+                return {
+                    players: `/api/${team}/players/${gameType}`,
+                    results: `/api/${team}/results/${gameType}`
+                };
+            } else {
+                return {
+                    players: `/api/players/${gameType}`,
+                    results: `/api/results/${gameType}`
+                };
+            }
+        }
+
+        // Load available games from API
+        async function loadGameConfig() {
+            try {
+                const response = await fetch('/api/games');
+                const data = await response.json();
+                
+                if (data.games) {
+                    availableGames = data.games;
+                    
+                    // Build gameConfig object
+                    data.games.forEach(game => {
+                        gameConfig[game.id] = {
+                            name: game.name,
+                            emoji: game.emoji,
+                            leaderboardImage: game.leaderboardImage,
+                            ratingsImage: game.ratingsImage
+                        };
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading game config:', error);
+                // Fallback to basic config if API fails
+                gameConfig = {
+                    chess: { name: 'Chess', emoji: '♔', leaderboardImage: 'chess_leaderboard.png', ratingsImage: 'chess_ratings_progress.png' },
+                    pingpong: { name: 'Ping Pong', emoji: '🏓', leaderboardImage: 'pingpong_leaderboard.png', ratingsImage: 'pingpong_ratings_progress.png' },
+                    backgammon: { name: 'Backgammon', emoji: '🎲', leaderboardImage: 'backgammon_leaderboard.png', ratingsImage: 'backgammon_ratings_progress.png' }
+                };
+            }
+        }
+
+        // Initialize page based on game type
+        async function initializeGame() {
+            // First load the game configuration
+            await loadGameConfig();
+            
+            const gameType = getGameType();
+            const config = gameConfig[gameType];
+            const team = getTeam();
+            
+            if (!config) {
+                // Game not found in config
+                document.body.innerHTML = '<div style="text-align: center; padding: 50px;"><h2>Game Not Found</h2><p>The requested game is not available.</p><a href="/" style="color: #667eea;">Go Home</a></div>';
+                return;
+            }
+            
+            // Update page title
+            document.title = `${config.name} Elo Dashboard`;
+            
+            // Update game title
+            document.getElementById('gameTitle').innerHTML = `${config.emoji} ${config.name} Management`;
+            
+            // Update modal titles
+            document.getElementById('addPlayerTitle').textContent = `Add New ${config.name} Player`;
+            document.getElementById('addResultTitle').textContent = `Add ${config.name} Game Result`;
+            
+            // Set initial image
+            let initialImageSrc;
+            if (team) {
+                initialImageSrc = `/api/${team}/charts/${gameType}/leaderboard.png`;
+            } else {
+                initialImageSrc = config.leaderboardImage;
+            }
+            document.getElementById('displayImage').src = initialImageSrc;
+            document.getElementById('displayImage').alt = `${config.name} Leaderboard`;
+            
+            // Load players
+            loadPlayers();
+        }
+
+        // Override functions to use dynamic game type and team
+        function loadPlayers() {
+            const gameType = getGameType();
+            const config = gameConfig[gameType];
+            const endpoints = getApiEndpoints();
+            
+            fetch(endpoints.players)
+                .then(response => response.json())
+                .then(data => {
+                    const player1Select = document.getElementById('player1Select');
+                    const player2Select = document.getElementById('player2Select');
+                    
+                    // Clear existing options
+                    player1Select.innerHTML = '<option value="">Select Player 1</option>';
+                    player2Select.innerHTML = '<option value="">Select Player 2</option>';
+                    
+                    // Add player options
+                    data.players.forEach(player => {
+                        const displayName = player.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' (-♛)');
+                        const option1 = new Option(displayName, player);
+                        const option2 = new Option(displayName, player);
+                        player1Select.add(option1);
+                        player2Select.add(option2);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading players:', error);
+                });
+        }
+
+        function addPlayer() {
+            const gameType = getGameType();
+            const config = gameConfig[gameType];
+            const endpoints = getApiEndpoints();
+            const playerName = document.getElementById('playerNameInput').value.trim();
+            
+            if (!playerName) {
+                alert('Please enter a player name');
+                return;
+            }
+            
+            // Get the submit button and check if already submitting
+            const confirmBtn = document.querySelector('#addPlayerModal .modal-btn.confirm');
+            if (confirmBtn.disabled) {
+                return; // Already submitting, ignore this click
+            }
+            
+            // Show loading state
+            const originalText = confirmBtn.textContent;
+            confirmBtn.textContent = 'Adding Player...';
+            confirmBtn.disabled = true;
+            
+            fetch(endpoints.players, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ player_name: playerName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Player "${playerName}" added successfully!`);
+                    closeAddPlayerModal();
+                    loadPlayers(); // Reload players
+                    location.reload(); // Refresh page to update charts
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding player');
+            })
+            .finally(() => {
+                confirmBtn.textContent = originalText;
+                confirmBtn.disabled = false;
+            });
+        }
+
+        function submitResult() {
+            const gameType = getGameType();
+            const config = gameConfig[gameType];
+            const endpoints = getApiEndpoints();
+            const player1 = document.getElementById('player1Select').value;
+            const player2 = document.getElementById('player2Select').value;
+            const result = document.querySelector('input[name="result"]:checked')?.value;
+            
+            if (!player1 || !player2) {
+                alert('Please select both players');
+                return;
+            }
+            
+            if (!result) {
+                alert('Please select a result');
+                return;
+            }
+            
+            if (player1 === player2) {
+                alert('Players must be different');
+                return;
+            }
+            
+            // Get the submit button and check if already submitting
+            const confirmBtn = document.querySelector('#addResultModal .modal-btn.confirm');
+            if (confirmBtn.disabled) {
+                return; // Already submitting, ignore this click
+            }
+            
+            // Show loading state
+            const originalText = confirmBtn.textContent;
+            confirmBtn.textContent = 'Submitting...';
+            confirmBtn.disabled = true;
+            
+            fetch(endpoints.results, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    player1: player1,
+                    player2: player2,
+                    result: result
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Result submitted successfully!');
+                    closeAddResultModal();
+                    location.reload(); // Refresh page to update charts
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting result');
+            })
+            .finally(() => {
+                confirmBtn.textContent = originalText;
+                confirmBtn.disabled = false;
+            });
+        }
+
+        function showLeaderboard() {
+            const gameType = getGameType();
+            const config = gameConfig[gameType];
+            const team = getTeam();
+            
+            let imageSrc;
+            if (team) {
+                imageSrc = `/api/${team}/charts/${gameType}/leaderboard.png`;
+            } else {
+                imageSrc = config.leaderboardImage;
+            }
+            
+            document.getElementById('displayImage').src = imageSrc;
+            document.getElementById('displayImage').alt = `${config.name} Leaderboard`;
+            
+            // Update button states
+            document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function showRatingsProgress() {
+            const gameType = getGameType();
+            const config = gameConfig[gameType];
+            const team = getTeam();
+            
+            let imageSrc;
+            if (team) {
+                imageSrc = `/api/${team}/charts/${gameType}/ratings_progress.png`;
+            } else {
+                imageSrc = config.ratingsImage;
+            }
+            
+            document.getElementById('displayImage').src = imageSrc;
+            document.getElementById('displayImage').alt = `${config.name} Ratings Progress`;
+            
+            // Update button states
+            document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Go to appropriate home page
+        function goHome() {
+            const team = getTeam();
+            if (team) {
+                window.location.href = `/t/${team}`;
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeGame);
+    </script>
+</body>
+</html>

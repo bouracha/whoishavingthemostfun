@@ -1,0 +1,23 @@
+{
+  "games": {
+    "chess": {
+      "name": "Chess",
+      "emoji": "\u2654",
+      "description": "Classic strategy board game"
+    },
+    "pingpong": {
+      "name": "Ping Pong",
+      "emoji": "\ud83c\udfd3",
+      "description": "Fast-paced table tennis"
+    },
+    "backgammon": {
+      "name": "Backgammon",
+      "emoji": "\ud83c\udfb2",
+      "description": "Ancient board game of strategy and luck"
+    }
+  },
+  "defaults": {
+    "emoji": "\ud83c\udfae",
+    "description": "Rating system game"
+  }
+}
