@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import datetime
 import os
+from collections import defaultdict
 
 # Set up matplotlib for better looking plots
 try:
@@ -34,6 +35,48 @@ def get_middle_rating(times, ratings):
     # Get the middle index
     middle_index = len(times) // 2
     return times[middle_index], ratings[middle_index]
+
+def bucket_player_data(times, ratings, bucket_boundaries, starting_rating):
+    """
+    Bucket player data into time intervals and compute statistics.
+    Returns bucket centers, means, and standard deviations.
+    """
+    if not times:
+        return [], [], []
+    
+    bucket_means = []
+    bucket_stds = []
+    bucket_centers = []
+    
+    # Initialize the last known rating as the starting rating
+    last_known_rating = starting_rating
+    
+    for i in range(len(bucket_boundaries) - 1):
+        bucket_start = bucket_boundaries[i]
+        bucket_end = bucket_boundaries[i + 1]
+        bucket_center = bucket_start + (bucket_end - bucket_start) / 2
+        
+        # Find all ratings in this bucket
+        bucket_ratings = []
+        for j, t in enumerate(times):
+            if bucket_start <= t < bucket_end:
+                bucket_ratings.append(ratings[j])
+                last_known_rating = ratings[j]  # Update last known rating
+        
+        # If we have data in this bucket, use it
+        if bucket_ratings:
+            bucket_means.append(np.mean(bucket_ratings))
+            bucket_stds.append(np.std(bucket_ratings) if len(bucket_ratings) > 1 else 0)
+            bucket_centers.append(bucket_center)
+        # Otherwise, use the last known rating (forward fill)
+        else:
+            # Only add a point if we've seen at least one game
+            if last_known_rating is not None and times[0] <= bucket_end:
+                bucket_means.append(last_known_rating)
+                bucket_stds.append(0)  # No variance if no games in bucket
+                bucket_centers.append(bucket_center)
+    
+    return bucket_centers, bucket_means, bucket_stds
 
 
 
@@ -138,9 +181,40 @@ if all_times:
     # Since each game involves 2 players, divide by 2 to get actual number of games
     total_games = total_games // 2
     
-    plt.xlabel("Time")
+    # Create time buckets (approximately 20 buckets, but ensure at least 5)
+    num_buckets = min(20, max(5, total_games // 3))
+    
+    # Create bucket boundaries
+    time_delta = (last_game_time - first_game_time) / num_buckets
+    bucket_boundaries = []
+    for i in range(num_buckets + 1):
+        bucket_boundaries.append(first_game_time + i * time_delta)
+    
+    plt.xlabel("Date")
     plt.title(f"{game_type} ({total_games} total games)")
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    
+    # Smart x-axis formatting based on time span
+    ax = plt.gca()
+    if time_span.days <= 7:
+        # Less than a week: show day and time
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d\n%H:%M'))
+        ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
+    elif time_span.days <= 30:
+        # Less than a month: show day and month
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, time_span.days // 10)))
+    elif time_span.days <= 365:
+        # Less than a year: show month and day
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+        ax.xaxis.set_major_locator(mdates.MonthLocator())
+        ax.xaxis.set_minor_locator(mdates.DayLocator(bymonthday=[1, 15]))
+    else:
+        # More than a year: show year and month
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=max(1, time_span.days // 365)))
+    
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=45, ha='right')
     
     # Define a nice color palette
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
@@ -158,60 +232,81 @@ if all_times:
     total_players = len(player_data) + sum(1 for player in all_requested_players 
                                          if player not in player_data or not player_data[player][0])
     
+    # Setting for whether to show standard deviation (can be adjusted)
+    show_std_dev = True  # Set to False to disable error bars
+    
     # Plot active players first
     player_index = 0
     for i, (label, (times, ratings, starting_rating)) in enumerate(player_data.items()):
         if times:  # Player has games
             color = colors[i % len(colors)]
             
-            # Check if this player was in the first game
-            was_in_first_game = times[0] == first_game_time
+            # Bucket the player's data
+            bucket_centers, bucket_means, bucket_stds = bucket_player_data(
+                times, ratings, bucket_boundaries, starting_rating
+            )
             
-            if was_in_first_game:
-                # Player was in the first game - add their starting rating at first game time
-                times_with_start = [first_game_time] + times
-                ratings_with_start = [starting_rating] + ratings
-            else:
-                # Player wasn't in the first game - add a starting point at first game time
-                # This creates a flat line from first game time to their first actual game
-                times_with_start = [first_game_time] + times
-                ratings_with_start = [starting_rating] + ratings
-            
-            # Add ending point at last game time if player's last game wasn't the most recent
-            if times_with_start[-1] != last_game_time:
-                # Extend to the most recent time with their current rating
-                times_with_end = times_with_start + [last_game_time]
-                ratings_with_end = ratings_with_start + [ratings_with_start[-1]]  # Current rating
-            else:
-                times_with_end = times_with_start
-                ratings_with_end = ratings_with_start
-            
-            # Check if this player has been inactive (no recent games)
-            is_inactive = times_with_start[-1] != last_game_time
-            
-            # Convert to matplotlib dates
-            mpl_times = [mdates.date2num(t) for t in times_with_end]
-            # Extract just the player name from the label (remove path) and format properly
-            player_name = label.split('/')[-1] if '/' in label else label
-            player_name = player_name.replace('_', ' ').title()
-            # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
-            player_name = player_name.replace(' Q', ' (-♛)')
-            
-            # Plot the line first (make inactive players more transparent)
-            alpha = 0.7 if is_inactive else 1.0
-            plt.plot(mpl_times, ratings_with_end, '-', color=color, linewidth=2.5, alpha=alpha)
-            
-            # Plot dots at all key points (start, each game, end)
-            plt.plot(mpl_times, ratings_with_end, 'o', color=color, markersize=8, markerfacecolor=color, markeredgecolor='white', markeredgewidth=2, alpha=alpha)
-            
-            # Add player name at the middle of their line
-            if len(mpl_times) > 0:
-                middle_x, middle_y = get_middle_rating(mpl_times, ratings_with_end)
-                if middle_x is not None:
-                    # Place text above the line
-                    plt.annotate(player_name, xy=(middle_x, middle_y), xytext=(5, 15), 
-                                textcoords='offset points', fontsize=20, fontweight='bold',
-                                color=color, alpha=alpha, ha='left', va='bottom')
+            if bucket_centers:  # Only plot if we have bucketed data
+                # Check if this player has been inactive (no recent games)
+                is_inactive = times[-1] != last_game_time
+                
+                # Convert bucket centers to matplotlib dates
+                mpl_times = [mdates.date2num(t) for t in bucket_centers]
+                
+                # Get the exact current rating and time
+                current_rating = ratings[-1]  # Last actual rating
+                current_time = mdates.date2num(last_game_time)  # Use global last game time
+                
+                # Extract just the player name from the label (remove path) and format properly
+                player_name = label.split('/')[-1] if '/' in label else label
+                player_name = player_name.replace('_', ' ').title()
+                # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
+                player_name = player_name.replace(' Q', ' (-♛)')
+                
+                # Plot the line first (make inactive players more transparent)
+                alpha = 0.7 if is_inactive else 1.0
+                plt.plot(mpl_times, bucket_means, '-', color=color, linewidth=2.5, alpha=alpha)
+                
+                # Plot error bars for standard deviation if enabled and we have variance
+                if show_std_dev and any(std > 0 for std in bucket_stds):
+                    # Only show error bars where std > 0
+                    error_times = []
+                    error_means = []
+                    error_stds = []
+                    for j, std in enumerate(bucket_stds):
+                        if std > 0:
+                            error_times.append(mpl_times[j])
+                            error_means.append(bucket_means[j])
+                            error_stds.append(std)
+                    
+                    if error_times:
+                        plt.errorbar(error_times, error_means, yerr=error_stds, 
+                                   fmt='none', color=color, alpha=alpha * 0.3, 
+                                   capsize=3, capthick=1)
+                
+                # Plot dots at bucket centers (smaller for historical points)
+                plt.plot(mpl_times, bucket_means, 'o', color=color, markersize=5, 
+                        markerfacecolor=color, markeredgecolor='white', 
+                        markeredgewidth=1.5, alpha=alpha)
+                
+                # Add exact current rating point (larger marker to emphasize)
+                plt.plot(current_time, current_rating, 'o', color=color, markersize=8, 
+                        markerfacecolor=color, markeredgecolor='white', 
+                        markeredgewidth=2, alpha=alpha, zorder=10)
+                
+                # Connect last bucket to current rating if they're different
+                if mpl_times and abs(mpl_times[-1] - current_time) > 0.1:  # Different times
+                    plt.plot([mpl_times[-1], current_time], [bucket_means[-1], current_rating], 
+                            '-', color=color, linewidth=2.5, alpha=alpha)
+                
+                # Add player name at the middle of their line
+                if len(mpl_times) > 0:
+                    middle_x, middle_y = get_middle_rating(mpl_times, bucket_means)
+                    if middle_x is not None:
+                        # Place text above the line
+                        plt.annotate(player_name, xy=(middle_x, middle_y), xytext=(5, 15), 
+                                    textcoords='offset points', fontsize=20, fontweight='bold',
+                                    color=color, alpha=alpha, ha='left', va='bottom')
     
     # Plot inactive players (only those who have no games at all)
     inactive_count = 0
