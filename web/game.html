@@ -505,8 +505,8 @@
                         // Same player - diagonal cell
                         tableHTML += '<td class="diagonal-cell">—</td>';
                     } else {
-                        const percentage = Math.round(probability * 100);
-                        const colorClass = getColorClass(percentage);
+                        const percentage = (probability * 100).toFixed(1);
+                        const colorClass = getColorClass(parseFloat(percentage));
                         tableHTML += `<td class="probability-cell ${colorClass}" data-row="${i}" data-col="${j}" title="${rowDisplayName} beats ${formatPlayerName(colPlayer)}: ${percentage}%">
                             <div class="probability-value">${percentage}%</div>
                         </td>`;
