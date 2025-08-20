@@ -471,8 +471,8 @@
                 return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' (-♛)');
             };
             
-            // Create table HTML
-            let tableHTML = '<table class="probability-matrix">';
+            // Create table HTML with scrollable container
+            let tableHTML = '<div class="probability-table-container"><table class="probability-matrix">';
             
             // Header row
             tableHTML += '<thead><tr><th class="corner-cell">vs</th>';
@@ -515,7 +515,7 @@
                 
                 tableHTML += '</tr>';
             });
-            tableHTML += '</tbody></table>';
+            tableHTML += '</tbody></table></div>';
             
             document.getElementById('probabilityTable').innerHTML = tableHTML;
             

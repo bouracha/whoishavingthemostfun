@@ -524,13 +524,41 @@ img {
     margin-bottom: 20px;
 }
 
-.probability-matrix {
+/* Container for horizontal scrolling */
+.probability-table-container {
+    width: 100%;
+    overflow-x: auto;
     margin: 0 auto;
-    border-collapse: collapse;
+    max-width: 95%;
+    border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Custom scrollbar for the table container */
+.probability-table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.probability-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.probability-table-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.probability-table-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.probability-matrix {
+    margin: 0;
+    border-collapse: collapse;
     border-radius: 8px;
     overflow: hidden;
-    max-width: 90%;
+    min-width: 600px; /* Ensure minimum width for readability */
 }
 
 .probability-matrix th,
@@ -556,9 +584,8 @@ img {
 }
 
 .column-header {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
     padding: 8px 6px;
+    position: relative;
 }
 
 .row-header {
@@ -658,30 +685,68 @@ img {
 
 /* Mobile responsiveness for probability matrix */
 @media (max-width: 768px) {
+    .probability-table-container {
+        max-width: 100%;
+        margin: 0 10px;
+    }
+    
     .probability-matrix {
         font-size: 12px;
-        max-width: 95%;
+        min-width: 500px;
     }
     
     .probability-matrix th,
     .probability-matrix td {
-        padding: 8px 4px;
+        padding: 6px 3px;
     }
     
     .player-name {
-        font-size: 11px;
+        font-size: 10px;
     }
     
     .player-rating {
-        font-size: 9px;
+        font-size: 8px;
     }
     
     .probability-value {
-        font-size: 12px;
+        font-size: 11px;
     }
     
     .column-header {
-        padding: 6px 3px;
+        padding: 4px 2px;
+    }
+    
+    .corner-cell {
+        font-size: 12px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .probability-table-container {
+        margin: 0 5px;
+    }
+    
+    .probability-matrix {
+        min-width: 400px;
+        font-size: 11px;
+    }
+    
+    .probability-matrix th,
+    .probability-matrix td {
+        padding: 4px 2px;
+    }
+    
+    .player-name {
+        font-size: 9px;
+    }
+    
+    .player-rating {
+        font-size: 7px;
+    }
+    
+    .probability-value {
+        font-size: 10px;
     }
 }
 
