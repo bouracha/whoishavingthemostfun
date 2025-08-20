@@ -478,7 +478,7 @@
             tableHTML += '<thead><tr><th class="corner-cell">vs</th>';
             players.forEach(player => {
                 const displayName = formatPlayerName(player);
-                const rating = Math.round(ratings[player]);
+                const rating = Math.floor(ratings[player]);
                 tableHTML += `<th class="column-header">
                     <div class="player-name">${displayName}</div>
                     <div class="player-rating">${rating}</div>
@@ -490,7 +490,7 @@
             tableHTML += '<tbody>';
             players.forEach((rowPlayer, i) => {
                 const rowDisplayName = formatPlayerName(rowPlayer);
-                const rowRating = Math.round(ratings[rowPlayer]);
+                const rowRating = Math.floor(ratings[rowPlayer]);
                 
                 tableHTML += `<tr>
                     <th class="row-header">
