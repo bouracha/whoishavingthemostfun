@@ -5,24 +5,29 @@ import argparse
 import os
 from typing import Optional
 
-def update(rating1, rating2, score, K: int = 40):
 
+def calculate_elo_probability(rating_a: float, rating_b: float) -> float:
+    """
+    Calculate the probability that player A beats player B based on ELO ratings.
+    Uses the standard ELO formula: P(A beats B) = 1 / (1 + 10^((rating_b - rating_a) / 400))
+    
+    Args:
+        rating_a: ELO rating of player A
+        rating_b: ELO rating of player B
+    
+    Returns:
+        Probability (0.0 to 1.0) that player A beats player B
+    """
+    return 1.0 / (1.0 + (10 ** ((rating_b - rating_a) / 400)))
+
+def update(rating1, rating2, score, K: int = 40):
+    """Legacy update function - refactored to use shared probability calculation"""
     score1 = score
     score2 = 1 - score
 
-    ratingDifference = np.abs(rating1 - rating2)
-
-    probabilityOfWeakerPlayerWinning = (1.0 / (1.0 + (10 ** ((ratingDifference * 1.0/ 400)))))
-
-    probabilityOfStrongerPlayerWinning = 1 - probabilityOfWeakerPlayerWinning
-
-    if (rating1 > rating2):
-        prob_of_1_winning = probabilityOfStrongerPlayerWinning
-        prob_of_2_winning = probabilityOfWeakerPlayerWinning
-    else:
-        prob_of_1_winning = probabilityOfWeakerPlayerWinning
-        prob_of_2_winning = probabilityOfStrongerPlayerWinning
-
+    # Use shared probability calculation function
+    prob_of_1_winning = calculate_elo_probability(rating1, rating2)
+    prob_of_2_winning = calculate_elo_probability(rating2, rating1)
 
     rating_change1 = (score1 - prob_of_1_winning) * K
     rating_change2 = (score2 - prob_of_2_winning) * K
@@ -539,18 +544,9 @@ def submit_game_with_charts(player1, player2, result, game, team=None, timestamp
         k_factor1 = get_adjusted_k_factor(player1, game, team)
         k_factor2 = get_adjusted_k_factor(player2, game, team)
         
-        # Calculate expected score and probability (using the same logic as the original update function)
-        rating_diff = abs(rating1 - rating2)
-        probability_of_weaker_winning = 1.0 / (1.0 + (10 ** (rating_diff / 400)))
-        probability_of_stronger_winning = 1 - probability_of_weaker_winning
-        
-        # Assign probabilities to the correct players
-        if rating1 > rating2:
-            expected_score1 = probability_of_stronger_winning
-            expected_score2 = probability_of_weaker_winning
-        else:
-            expected_score1 = probability_of_weaker_winning
-            expected_score2 = probability_of_stronger_winning
+        # Calculate expected scores using the shared ELO probability function
+        expected_score1 = calculate_elo_probability(rating1, rating2)
+        expected_score2 = calculate_elo_probability(rating2, rating1)
         
         # Calculate rating changes using individual K-factors
         actual_score1 = score
