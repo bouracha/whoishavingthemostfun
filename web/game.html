@@ -22,11 +22,21 @@
             <div class="action-buttons">
                 <button class="button active" onclick="showLeaderboard()">🏆 Leaderboard</button>
                 <button class="button" onclick="showRatingsProgress()">📈 Ratings Progress</button>
+                <button class="button" onclick="showProbabilityMatrix()">🎯 Head-to-Head</button>
             </div>
         </div>
         
         <div id="imageContainer">
             <img id="displayImage" src="" alt="Game Leaderboard">
+        </div>
+
+        <!-- Probability Matrix Container -->
+        <div id="probabilityContainer" style="display: none;">
+            <div id="probabilityHeader">
+                <h3>🎯 Head-to-Head Probabilities</h3>
+                <p class="matrix-description">Win probability for each player matchup (row player vs column player)</p>
+            </div>
+            <div id="probabilityTable"></div>
         </div>
     </div>
 
@@ -369,6 +379,10 @@
             document.getElementById('displayImage').src = imageSrc;
             document.getElementById('displayImage').alt = `${config.name} Leaderboard`;
             
+            // Show image container, hide probability container
+            document.getElementById('imageContainer').style.display = 'block';
+            document.getElementById('probabilityContainer').style.display = 'none';
+            
             // Update button states
             document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
@@ -389,9 +403,167 @@
             document.getElementById('displayImage').src = imageSrc;
             document.getElementById('displayImage').alt = `${config.name} Ratings Progress`;
             
+            // Show image container, hide probability container
+            document.getElementById('imageContainer').style.display = 'block';
+            document.getElementById('probabilityContainer').style.display = 'none';
+            
             // Update button states
             document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
+        }
+
+        function showProbabilityMatrix() {
+            const gameType = getGameType();
+            const team = getTeam();
+            
+            // Hide image container, show probability container
+            document.getElementById('imageContainer').style.display = 'none';
+            document.getElementById('probabilityContainer').style.display = 'block';
+            
+            // Update button states
+            document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Load and display probability matrix
+            loadProbabilityMatrix();
+        }
+
+        function loadProbabilityMatrix() {
+            const gameType = getGameType();
+            const team = getTeam();
+            
+            let apiUrl;
+            if (team) {
+                apiUrl = `/api/${team}/probability-matrix/${gameType}`;
+            } else {
+                apiUrl = `/api/probability-matrix/${gameType}`;
+            }
+            
+            // Show loading state
+            document.getElementById('probabilityTable').innerHTML = '<div class="loading">Loading probability matrix...</div>';
+            
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('probabilityTable').innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                        return;
+                    }
+                    
+                    renderProbabilityTable(data);
+                })
+                .catch(error => {
+                    console.error('Error loading probability matrix:', error);
+                    document.getElementById('probabilityTable').innerHTML = '<div class="error">Failed to load probability matrix</div>';
+                });
+        }
+
+        function renderProbabilityTable(data) {
+            const { players, ratings, matrix, game } = data;
+            
+            if (players.length < 2) {
+                document.getElementById('probabilityTable').innerHTML = '<div class="error">Need at least 2 players to show probabilities</div>';
+                return;
+            }
+            
+            // Format player names for display
+            const formatPlayerName = (name) => {
+                return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' (-♛)');
+            };
+            
+            // Create table HTML
+            let tableHTML = '<table class="probability-matrix">';
+            
+            // Header row
+            tableHTML += '<thead><tr><th class="corner-cell">vs</th>';
+            players.forEach(player => {
+                const displayName = formatPlayerName(player);
+                const rating = Math.round(ratings[player]);
+                tableHTML += `<th class="column-header">
+                    <div class="player-name">${displayName}</div>
+                    <div class="player-rating">${rating}</div>
+                </th>`;
+            });
+            tableHTML += '</tr></thead>';
+            
+            // Data rows
+            tableHTML += '<tbody>';
+            players.forEach((rowPlayer, i) => {
+                const rowDisplayName = formatPlayerName(rowPlayer);
+                const rowRating = Math.round(ratings[rowPlayer]);
+                
+                tableHTML += `<tr>
+                    <th class="row-header">
+                        <div class="player-name">${rowDisplayName}</div>
+                        <div class="player-rating">${rowRating}</div>
+                    </th>`;
+                
+                players.forEach((colPlayer, j) => {
+                    const probability = matrix[i][j];
+                    
+                    if (probability === null) {
+                        // Same player - diagonal cell
+                        tableHTML += '<td class="diagonal-cell">—</td>';
+                    } else {
+                        const percentage = Math.round(probability * 100);
+                        const colorClass = getColorClass(percentage);
+                        tableHTML += `<td class="probability-cell ${colorClass}" data-row="${i}" data-col="${j}" title="${rowDisplayName} beats ${formatPlayerName(colPlayer)}: ${percentage}%">
+                            <div class="probability-value">${percentage}%</div>
+                        </td>`;
+                    }
+                });
+                
+                tableHTML += '</tr>';
+            });
+            tableHTML += '</tbody></table>';
+            
+            document.getElementById('probabilityTable').innerHTML = tableHTML;
+            
+            // Add hover effects
+            addTableHoverEffects();
+        }
+
+        function getColorClass(percentage) {
+            if (percentage >= 80) return 'very-likely';
+            if (percentage >= 65) return 'likely';
+            if (percentage >= 35) return 'even';
+            if (percentage >= 20) return 'unlikely';
+            return 'very-unlikely';
+        }
+
+        function addTableHoverEffects() {
+            const table = document.querySelector('.probability-matrix');
+            const cells = table.querySelectorAll('.probability-cell');
+            
+            cells.forEach(cell => {
+                cell.addEventListener('mouseenter', function() {
+                    const row = this.dataset.row;
+                    const col = this.dataset.col;
+                    
+                    // Highlight row and column
+                    table.querySelectorAll('tr').forEach((tr, i) => {
+                        if (i === parseInt(row) + 1) { // +1 for header row
+                            tr.classList.add('highlight-row');
+                        }
+                    });
+                    
+                    table.querySelectorAll('th, td').forEach((th, i) => {
+                        const colIndex = i % (table.rows[0].cells.length);
+                        if (colIndex === parseInt(col) + 1) { // +1 for row header
+                            th.classList.add('highlight-col');
+                        }
+                    });
+                    
+                    this.classList.add('highlight-cell');
+                });
+                
+                cell.addEventListener('mouseleave', function() {
+                    // Remove all highlights
+                    table.querySelectorAll('.highlight-row, .highlight-col, .highlight-cell').forEach(el => {
+                        el.classList.remove('highlight-row', 'highlight-col', 'highlight-cell');
+                    });
+                });
+            });
         }
 
         // Go to appropriate home page

@@ -507,4 +507,182 @@ img {
     100% { transform: rotate(360deg); }
 }
 
+/* Probability Matrix Styles */
+#probabilityContainer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+#probabilityHeader h3 {
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.matrix-description {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 20px;
+}
+
+.probability-matrix {
+    margin: 0 auto;
+    border-collapse: collapse;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 90%;
+}
+
+.probability-matrix th,
+.probability-matrix td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+    transition: all 0.2s ease;
+}
+
+.corner-cell {
+    background-color: #f8f9fa !important;
+    color: #666;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.column-header,
+.row-header {
+    background-color: #f1f3f4 !important;
+    font-weight: bold;
+    min-width: 80px;
+}
+
+.column-header {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: 8px 6px;
+}
+
+.row-header {
+    text-align: left;
+    padding-left: 12px;
+}
+
+.player-name {
+    font-weight: bold;
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;
+}
+
+.player-rating {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+}
+
+.diagonal-cell {
+    background-color: #f8f9fa !important;
+    color: #999;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.probability-cell {
+    cursor: pointer;
+    font-weight: bold;
+    position: relative;
+}
+
+.probability-value {
+    font-size: 14px;
+}
+
+/* Color coding for probabilities */
+.very-likely {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.likely {
+    background-color: #cce7ff;
+    color: #004085;
+}
+
+.even {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.unlikely {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.very-unlikely {
+    background-color: #f5c6cb;
+    color: #721c24;
+}
+
+/* Hover effects */
+.probability-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 10;
+    position: relative;
+}
+
+.highlight-row {
+    background-color: rgba(33, 150, 243, 0.1) !important;
+}
+
+.highlight-col th,
+.highlight-col td {
+    background-color: rgba(33, 150, 243, 0.1) !important;
+}
+
+.highlight-cell {
+    border: 2px solid #2196F3 !important;
+    box-shadow: 0 0 10px rgba(33, 150, 243, 0.3) !important;
+}
+
+/* Loading and error states */
+.loading, .error {
+    padding: 40px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.error {
+    color: #d32f2f;
+}
+
+/* Mobile responsiveness for probability matrix */
+@media (max-width: 768px) {
+    .probability-matrix {
+        font-size: 12px;
+        max-width: 95%;
+    }
+    
+    .probability-matrix th,
+    .probability-matrix td {
+        padding: 8px 4px;
+    }
+    
+    .player-name {
+        font-size: 11px;
+    }
+    
+    .player-rating {
+        font-size: 9px;
+    }
+    
+    .probability-value {
+        font-size: 12px;
+    }
+    
+    .column-header {
+        padding: 6px 3px;
+    }
+}
+
 

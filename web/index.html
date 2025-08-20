@@ -134,7 +134,7 @@
         .recent-results {
             margin: 40px 0;
             text-align: left;
-            max-height: 500px;
+            max-height: 800px;
             overflow-y: auto;
             border: none;
             border-radius: 20px;
@@ -481,8 +481,8 @@
                 
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrl = team 
-                    ? (isLocal ? `http://localhost:8080/api/${team}/recent-results?offset=${offset}&limit=5` : `/api/${team}/recent-results?offset=${offset}&limit=5`)
-                    : (isLocal ? `http://localhost:8080/api/recent-results?offset=${offset}&limit=5` : `/api/recent-results?offset=${offset}&limit=5`);
+                    ? (isLocal ? `http://localhost:8080/api/${team}/recent-results?offset=${offset}&limit=15` : `/api/${team}/recent-results?offset=${offset}&limit=15`)
+                    : (isLocal ? `http://localhost:8080/api/recent-results?offset=${offset}&limit=15` : `/api/recent-results?offset=${offset}&limit=15`);
                 
                 const response = await fetch(apiUrl, { credentials: 'include' });
                 
@@ -554,7 +554,7 @@
             showMoreBtn.textContent = 'Loading...';
             
             try {
-                await loadRecentResults(currentTeam, currentOffset + 5, true);
+                await loadRecentResults(currentTeam, currentOffset + 10, true);
             } finally {
                 showMoreBtn.disabled = false;
                 showMoreBtn.textContent = 'Show More Results';

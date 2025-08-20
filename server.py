@@ -20,7 +20,7 @@ from datetime import timedelta
 sys.path.append(os.path.join(os.path.dirname(__file__), 'code'))
 
 # Import our existing functions
-from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts
+from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts, calculate_elo_probability
 
 app = Flask(__name__)
 # Secret key for sessions (override via env in production)
@@ -445,7 +445,7 @@ def get_recent_results_main():
         
         # Get pagination parameters
         offset = request.args.get('offset', 0, type=int)
-        limit = request.args.get('limit', 10, type=int)
+        limit = request.args.get('limit', 25, type=int)
         
         # Sort by timestamp descending and get paginated results
         # Handle both timestamp formats (with and without microseconds)
@@ -532,7 +532,7 @@ def get_recent_results(team):
         
         # Get pagination parameters
         offset = request.args.get('offset', 0, type=int)
-        limit = request.args.get('limit', 10, type=int)
+        limit = request.args.get('limit', 25, type=int)
         
         # Sort by timestamp descending and get paginated results
         # Handle both timestamp formats (with and without microseconds)
@@ -933,6 +933,106 @@ def undo_last_result_team(team):
             'success': False,
             'error': f'Server error: {str(e)}'
         }), 500
+
+def get_probability_matrix(game: str, team: str = None) -> dict:
+    """
+    Generate a cross-table showing win probabilities between all players.
+    Returns dict with player names and probability matrix.
+    """
+    try:
+        # Determine the correct database path
+        if team:
+            game_dir = os.path.join(DATABASE_DIR, team, game)
+        else:
+            game_dir = os.path.join(DATABASE_DIR, game)
+        
+        if not os.path.exists(game_dir):
+            return {"error": f"No data found for {game}"}
+        
+        # Get all player files
+        player_files = [f for f in os.listdir(game_dir) if f.endswith('.csv')]
+        if not player_files:
+            return {"error": f"No players found for {game}"}
+        
+        # Read current ratings for all players
+        players = []
+        ratings = {}
+        
+        for player_file in player_files:
+            player_name = player_file[:-4]  # Remove .csv
+            file_path = os.path.join(game_dir, player_file)
+            
+            try:
+                data = pd.read_csv(file_path)
+                if not data.empty:
+                    current_rating = data['rating'].iloc[-1]
+                    players.append(player_name)
+                    ratings[player_name] = current_rating
+            except Exception as e:
+                print(f"Error reading {player_file}: {e}")
+                continue
+        
+        if len(players) < 2:
+            return {"error": "Need at least 2 players for probability matrix"}
+        
+        # Sort players by current rating (highest to lowest) for better UX
+        players.sort(key=lambda p: ratings[p], reverse=True)
+        
+        # Limit to top 10 players to prevent overcrowding
+        if len(players) > 10:
+            players = players[:10]
+        
+        # Generate probability matrix
+        matrix = []
+        for i, player_a in enumerate(players):
+            row = []
+            for j, player_b in enumerate(players):
+                if i == j:
+                    # Same player - probability is undefined, use null
+                    probability = None
+                else:
+                    probability = calculate_elo_probability(ratings[player_a], ratings[player_b])
+                    probability = round(probability, 3)  # Round to 3 decimal places
+                row.append(probability)
+            matrix.append(row)
+        
+        return {
+            "players": players,
+            "ratings": ratings,
+            "matrix": matrix,
+            "game": game
+        }
+    
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.route('/api/probability-matrix/<game>')
+def get_probability_matrix_main(game):
+    """Get probability matrix for main database"""
+    try:
+        result = get_probability_matrix(game)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/<team>/probability-matrix/<game>')
+def get_probability_matrix_team(team, game):
+    """Get probability matrix for team database"""
+    try:
+        team = sanitize_team(team)
+        assert_team_access(team)
+        result = get_probability_matrix(game, team)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result)
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden'}), 403
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/health')
 def health_check():
