@@ -978,10 +978,6 @@ def get_probability_matrix(game: str, team: str = None) -> dict:
         # Sort players by current rating (highest to lowest) for better UX
         players.sort(key=lambda p: ratings[p], reverse=True)
         
-        # Limit to top 10 players to prevent overcrowding
-        if len(players) > 10:
-            players = players[:10]
-        
         # Generate probability matrix
         matrix = []
         for i, player_a in enumerate(players):
