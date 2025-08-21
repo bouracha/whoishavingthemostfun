@@ -3,6 +3,10 @@
 Compare simulated data CSVs line-by-line between:
   - database/chess
   - database/test_data/chess
+  - database/pingpong
+  - database/test_data/pingpong
+  - database/backgammon
+  - database/test_data/backgammon
 
 Exact match required: same files, same ordering, identical contents.
 
@@ -65,18 +69,20 @@ def compare_files_line_by_line(file_a: str, file_b: str) -> tuple[bool, str]:
     return True, ""
 
 
-def main() -> int:
-    base = os.path.dirname(__file__)
-    live_dir = os.path.join(base, 'database', 'chess')
-    snap_dir = os.path.join(base, 'database', 'test_data', 'chess')
+def test_game_data(base: str, game: str) -> bool:
+    """Test a specific game's data between live and test directories."""
+    live_dir = os.path.join(base, 'database', game)
+    snap_dir = os.path.join(base, 'database', 'test_data', game)
+
+    print(f"\n=== Testing {game.upper()} ===")
 
     # Basic existence checks
     if not os.path.isdir(live_dir):
         print(f"❌ Missing directory: {live_dir}")
-        return 1
+        return False
     if not os.path.isdir(snap_dir):
         print(f"❌ Missing directory: {snap_dir}")
-        return 1
+        return False
 
     live_csvs = list_csv_files(live_dir)
     snap_csvs = list_csv_files(snap_dir)
@@ -88,7 +94,7 @@ def main() -> int:
             print(f"❌ Files only in {live_dir}: {only_in_live}")
         if only_in_snap:
             print(f"❌ Files only in {snap_dir}: {only_in_snap}")
-        return 1
+        return False
 
     # Deterministic order
     all_files = sorted(live_csvs)
@@ -105,10 +111,27 @@ def main() -> int:
             print(f"✅ {fname} matches")
 
     if any_diff:
-        return 1
+        return False
 
-    print("\n✅ All chess CSVs match exactly")
-    return 0
+    print(f"✅ All {game} CSVs match exactly")
+    return True
+
+
+def main() -> int:
+    base = os.path.dirname(__file__)
+    games = ['chess', 'pingpong', 'backgammon']
+    
+    all_passed = True
+    for game in games:
+        if not test_game_data(base, game):
+            all_passed = False
+    
+    if all_passed:
+        print("\n🎉 All games passed validation!")
+        return 0
+    else:
+        print("\n❌ Some games failed validation")
+        return 1
 
 
 if __name__ == '__main__':

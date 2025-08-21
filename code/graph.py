@@ -39,13 +39,13 @@ def get_middle_rating(times, ratings):
 def bucket_player_data(times, ratings, bucket_boundaries, starting_rating):
     """
     Bucket player data into time intervals and compute statistics.
-    Returns bucket centers, means, and standard deviations.
+    Returns bucket centers, means, and ranges.
     """
     if not times:
         return [], [], []
     
     bucket_means = []
-    bucket_stds = []
+    bucket_ranges = []
     bucket_centers = []
     
     # Initialize the last known rating as the starting rating
@@ -66,17 +66,18 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating):
         # If we have data in this bucket, use it
         if bucket_ratings:
             bucket_means.append(np.mean(bucket_ratings))
-            bucket_stds.append(np.std(bucket_ratings) if len(bucket_ratings) > 1 else 0)
+            # Calculate range (max - min) instead of standard deviation
+            bucket_ranges.append(np.max(bucket_ratings) - np.min(bucket_ratings) if len(bucket_ratings) > 1 else 0)
             bucket_centers.append(bucket_center)
         # Otherwise, use the last known rating (forward fill)
         else:
             # Only add a point if we've seen at least one game
             if last_known_rating is not None and times[0] <= bucket_end:
                 bucket_means.append(last_known_rating)
-                bucket_stds.append(0)  # No variance if no games in bucket
+                bucket_ranges.append(0)  # No range if no games in bucket
                 bucket_centers.append(bucket_center)
     
-    return bucket_centers, bucket_means, bucket_stds
+    return bucket_centers, bucket_means, bucket_ranges
 
 
 
@@ -232,8 +233,8 @@ if all_times:
     total_players = len(player_data) + sum(1 for player in all_requested_players 
                                          if player not in player_data or not player_data[player][0])
     
-    # Setting for whether to show standard deviation (can be adjusted)
-    show_std_dev = True  # Set to False to disable error bars
+    # Setting for whether to show range (can be adjusted)
+    show_range = True  # Set to False to disable error bars
     
     # Plot active players first
     player_index = 0
@@ -242,7 +243,7 @@ if all_times:
             color = colors[i % len(colors)]
             
             # Bucket the player's data
-            bucket_centers, bucket_means, bucket_stds = bucket_player_data(
+            bucket_centers, bucket_means, bucket_ranges = bucket_player_data(
                 times, ratings, bucket_boundaries, starting_rating
             )
             
@@ -267,20 +268,20 @@ if all_times:
                 alpha = 0.7 if is_inactive else 1.0
                 plt.plot(mpl_times, bucket_means, '-', color=color, linewidth=2.5, alpha=alpha)
                 
-                # Plot error bars for standard deviation if enabled and we have variance
-                if show_std_dev and any(std > 0 for std in bucket_stds):
-                    # Only show error bars where std > 0
+                # Plot error bars for range if enabled and we have variance
+                if show_range and any(rng > 0 for rng in bucket_ranges):
+                    # Only show error bars where range > 0
                     error_times = []
                     error_means = []
-                    error_stds = []
-                    for j, std in enumerate(bucket_stds):
-                        if std > 0:
+                    error_ranges = []
+                    for j, rng in enumerate(bucket_ranges):
+                        if rng > 0:
                             error_times.append(mpl_times[j])
                             error_means.append(bucket_means[j])
-                            error_stds.append(std)
+                            error_ranges.append(rng)
                     
                     if error_times:
-                        plt.errorbar(error_times, error_means, yerr=error_stds, 
+                        plt.errorbar(error_times, error_means, yerr=error_ranges, 
                                    fmt='none', color=color, alpha=alpha * 0.3, 
                                    capsize=3, capthick=1)
                 

@@ -79,6 +79,10 @@ def create_players_for_all_games():
             try:
                 if game == 'chess':
                     starting = float(PEAK_CHESS.get(player, 2400))
+                elif game == 'pingpong':
+                    starting = random.uniform(1400, 2000)
+                elif game == 'backgammon':
+                    starting = random.uniform(1200, 1600)
                 else:
                     starting = random.uniform(700, 2200)
                 make_new_player(player, game, starting_rating=starting)
