@@ -41,9 +41,10 @@ body {
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.3s;
-    position: absolute;
+    position: fixed;
     top: 20px;
     left: 20px;
+    z-index: 1001;
 }
 
 .home-button:hover {
@@ -71,7 +72,7 @@ img {
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     padding: 30px;
-    margin: 20px auto;
+    margin: 60px auto 20px auto;
     max-width: 1200px;
 }
 
