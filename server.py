@@ -20,7 +20,7 @@ from datetime import timedelta
 sys.path.append(os.path.join(os.path.dirname(__file__), 'code'))
 
 # Import our existing functions
-from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts, calculate_elo_probability
+from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts, calculate_elo_probability, add_comment_to_result
 
 app = Flask(__name__)
 # Secret key for sessions (override via env in production)
@@ -495,6 +495,19 @@ def get_recent_results_main():
                 player1_display, player2_display, row['result'], probability, timestamp_str
             )
             
+            # Parse comments if they exist
+            comments = []
+            if 'comments' in df_paginated.columns and pd.notna(row['comments']) and row['comments'] != '':
+                try:
+                    import ast
+                    if row['comments'] != '[]':
+                        comments_list = ast.literal_eval(row['comments'])
+                        if isinstance(comments_list, list):
+                            comments = comments_list
+                except (ValueError, SyntaxError):
+                    # If parsing fails, treat as empty
+                    comments = []
+            
             results.append({
                 'timestamp': timestamp_str,
                 'game': row['game'].title(),
@@ -504,7 +517,8 @@ def get_recent_results_main():
                 'probability': probability,
                 'commentary': commentary,
                 'player1_change': player1_change,
-                'player2_change': player2_change
+                'player2_change': player2_change,
+                'comments': comments
             })
         
         return jsonify({'results': results, 'has_more': has_more})
@@ -582,6 +596,19 @@ def get_recent_results(team):
                 player1_display, player2_display, row['result'], probability, timestamp_str
             )
             
+            # Parse comments if they exist
+            comments = []
+            if 'comments' in df_paginated.columns and pd.notna(row['comments']) and row['comments'] != '':
+                try:
+                    import ast
+                    if row['comments'] != '[]':
+                        comments_list = ast.literal_eval(row['comments'])
+                        if isinstance(comments_list, list):
+                            comments = comments_list
+                except (ValueError, SyntaxError):
+                    # If parsing fails, treat as empty
+                    comments = []
+            
             results.append({
                 'timestamp': timestamp_str,
                 'game': row['game'].title(),
@@ -591,7 +618,8 @@ def get_recent_results(team):
                 'probability': probability,
                 'commentary': commentary,
                 'player1_change': player1_change,
-                'player2_change': player2_change
+                'player2_change': player2_change,
+                'comments': comments
             })
         
         return jsonify({'results': results, 'has_more': has_more})
@@ -609,6 +637,8 @@ def submit_result(game):
         player1 = data.get('player1', '').strip()
         player2 = data.get('player2', '').strip()
         result = data.get('result', '')  # '1-0', '0-1', or '1/2-1/2'
+        comment = data.get('comment', '').strip()
+        commenter_name = data.get('commenter_name', '').strip()
         
         if not player1 or not player2:
             return jsonify({'error': 'Both players are required'}), 400
@@ -618,6 +648,10 @@ def submit_result(game):
         
         if result not in ['1-0', '0-1', '1/2-1/2']:
             return jsonify({'error': 'Invalid result format'}), 400
+        
+        # Validate comment inputs if comment is provided
+        if comment and not commenter_name:
+            return jsonify({'error': 'Commenter name is required when adding a comment'}), 400
         
         # Convert result to score for main.py
         if result == '1-0':
@@ -631,14 +665,34 @@ def submit_result(game):
         result_data = submit_game_with_charts(player1, player2, result, game)
         
         if result_data.get('success'):
-            return jsonify({
+            response_data = {
                 'success': True,
                 'message': result_data['message'],
                 'game': game,
                 'player1': player1,
                 'player2': player2,
                 'result': result
-            })
+            }
+            
+            # Add comment if provided
+            if comment and commenter_name:
+                comment_result = add_comment_to_result(
+                    comment=comment,
+                    commenter_name=commenter_name,
+                    team=None,
+                    offset=0,
+                    index=0  # Latest result is at position 0,0
+                )
+                
+                if comment_result.get('success'):
+                    response_data['comment_added'] = True
+                    response_data['comment'] = comment_result.get('comment')
+                    response_data['message'] += ' (with comment)'
+                else:
+                    # Comment failed but game succeeded - still return success
+                    response_data['comment_error'] = comment_result.get('error')
+            
+            return jsonify(response_data)
         else:
             return jsonify({'error': result_data.get('error', 'Unknown error')}), 500
     
@@ -655,6 +709,8 @@ def submit_result_team(team, game):
         player1 = data.get('player1', '').strip()
         player2 = data.get('player2', '').strip()
         result = data.get('result', '')
+        comment = data.get('comment', '').strip()
+        commenter_name = data.get('commenter_name', '').strip()
 
         if not player1 or not player2:
             return jsonify({'error': 'Both players are required'}), 400
@@ -662,6 +718,10 @@ def submit_result_team(team, game):
             return jsonify({'error': 'Players must be different'}), 400
         if result not in ['1-0', '0-1', '1/2-1/2']:
             return jsonify({'error': 'Invalid result format'}), 400
+        
+        # Validate comment inputs if comment is provided
+        if comment and not commenter_name:
+            return jsonify({'error': 'Commenter name is required when adding a comment'}), 400
 
         score = 1.0 if result == '1-0' else 0.0 if result == '0-1' else 0.5
 
@@ -669,16 +729,38 @@ def submit_result_team(team, game):
         result_data = submit_game_with_charts(player1, player2, result, game, team=team)
         
         if result_data.get('success'):
-            return jsonify({
-                'success': True, 
-                'message': result_data['message'], 
-                'game': game, 
+            response_data = {
+                'success': True,
+                'message': result_data['message'],
+                'game': game,
                 'team': team
-            })
+            }
+            
+            # Add comment if provided
+            if comment and commenter_name:
+                comment_result = add_comment_to_result(
+                    comment=comment,
+                    commenter_name=commenter_name,
+                    team=team,
+                    offset=0,
+                    index=0  # Latest result is at position 0,0
+                )
+                
+                if comment_result.get('success'):
+                    response_data['comment_added'] = True
+                    response_data['comment'] = comment_result.get('comment')
+                    response_data['message'] += ' (with comment)'
+                else:
+                    # Comment failed but game succeeded - still return success
+                    response_data['comment_error'] = comment_result.get('error')
+            
+            return jsonify(response_data)
         else:
             return jsonify({'error': result_data.get('error', 'Unknown error')}), 500
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1029,6 +1111,94 @@ def get_probability_matrix_team(team, game):
         return jsonify({'error': 'Forbidden'}), 403
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/comments', methods=['POST'])
+def add_comment_main():
+    """Add a comment to a result in the main database"""
+    try:
+        data = request.get_json()
+        timestamp = data.get('timestamp', '').strip()
+        comment = data.get('comment', '').strip()
+        commenter_name = data.get('commenter_name', '').strip()
+        offset = data.get('offset', 0)
+        index = data.get('index', 0)
+        
+        if not comment:
+            return jsonify({'error': 'Comment is required'}), 400
+            
+        if not commenter_name:
+            return jsonify({'error': 'Commenter name is required'}), 400
+        
+        # Use our backend function to add the comment
+        result = add_comment_to_result(
+            timestamp=timestamp,
+            comment=comment, 
+            commenter_name=commenter_name, 
+            team=None,
+            offset=offset,
+            index=index
+        )
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': result['message'],
+                'comment': result['comment'],
+                'timestamp': result.get('timestamp', timestamp)
+            })
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 400
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/<team>/comments', methods=['POST'])
+def add_comment_team(team):
+    """Add a comment to a result in a team's database"""
+    try:
+        team = sanitize_team(team)
+        assert_team_access(team)
+        
+        data = request.get_json(force=True)
+        timestamp = data.get('timestamp', '').strip()
+        comment = data.get('comment', '').strip()
+        commenter_name = data.get('commenter_name', '').strip()
+        offset = data.get('offset', 0)
+        index = data.get('index', 0)
+        
+        if not comment:
+            return jsonify({'error': 'Comment is required'}), 400
+            
+        if not commenter_name:
+            return jsonify({'error': 'Commenter name is required'}), 400
+        
+        # Use our backend function to add the comment
+        result = add_comment_to_result(
+            timestamp=timestamp,
+            comment=comment, 
+            commenter_name=commenter_name, 
+            team=team,
+            offset=offset,
+            index=index
+        )
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': result['message'],
+                'comment': result['comment'],
+                'timestamp': result.get('timestamp', timestamp),
+                'team': team
+            })
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 400
+    
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health')
 def health_check():

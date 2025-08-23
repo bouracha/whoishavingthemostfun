@@ -217,16 +217,16 @@ def log_result_to_team(
     else:
         results_file = f"{database_path}/results.csv"
     
-    # Create headers if file doesn't exist (with change columns)
+    # Create headers if file doesn't exist (with change and comments columns)
     if not os.path.exists(results_file):
         headers = [
             'timestamp', 'game', 'player1', 'player2', 'result', 'probability',
-            'player1_change', 'player2_change'
+            'player1_change', 'player2_change', 'comments'
         ]
         df_headers = pd.DataFrame(columns=headers)
         df_headers.to_csv(results_file, index=False)
     else:
-        # Ensure file has the new change columns; if missing, backfill them
+        # Ensure file has the new columns; if missing, backfill them
         try:
             existing = pd.read_csv(results_file)
             changed = False
@@ -235,6 +235,9 @@ def log_result_to_team(
                 changed = True
             if 'player2_change' not in existing.columns:
                 existing['player2_change'] = pd.NA
+                changed = True
+            if 'comments' not in existing.columns:
+                existing['comments'] = ''
                 changed = True
             if changed:
                 existing.to_csv(results_file, index=False)
@@ -257,6 +260,7 @@ def log_result_to_team(
         'probability': f"{probability:.3f}",
         'player1_change': int(round(player1_change)) if player1_change is not None else pd.NA,
         'player2_change': int(round(player2_change)) if player2_change is not None else pd.NA,
+        'comments': '',
     }
     
     # Append to the results file
@@ -595,6 +599,98 @@ def submit_game_with_charts(player1, player2, result, game, team=None, timestamp
         
     except Exception as e:
         return {'error': str(e)}
+
+def add_comment_to_result(timestamp=None, comment=None, commenter_name=None, team=None, offset=0, index=0):
+    """
+    Add a comment to an existing game result in results.csv.
+    Comments are stored as a list of strings in the format: ["comment text - CommenterName"]
+    
+    Args:
+        timestamp (str): Legacy timestamp parameter (optional)
+        comment (str): The comment text
+        commenter_name (str): Name of the person making the comment
+        team (str): Optional team name
+        offset (int): Offset from the API call (for pagination)
+        index (int): Index within the current page
+    
+    Returns:
+        dict: Result with success/error info
+    """
+    try:
+        # Determine the correct path based on where we're running from
+        database_path = "database" if os.path.exists("database") else "../database"
+        
+        if team:
+            results_file = f"{database_path}/{team}/results.csv"
+        else:
+            results_file = f"{database_path}/results.csv"
+        
+        # Check if results file exists
+        if not os.path.exists(results_file):
+            return {'error': f'No results file found at {results_file}'}
+        
+        # Read the results file
+        df = pd.read_csv(results_file)
+        
+        if df.empty:
+            return {'error': 'No results found'}
+        
+        # Position-based matching: API shows results in reverse chronological order (newest first)
+        # So offset=0, index=0 corresponds to the last row in the CSV
+        # offset=0, index=1 corresponds to the second-to-last row, etc.
+        
+        # Calculate the actual row index in the dataframe
+        # Total rows - 1 (for 0-based indexing) - offset - index
+        total_rows = len(df)
+        row_index = total_rows - 1 - offset - index
+        
+        # Validate the calculated index
+        if row_index < 0 or row_index >= total_rows:
+            return {'error': f'Invalid result position: offset={offset}, index={index} (total results: {total_rows})'}
+        
+        # For backward compatibility, also validate timestamp if provided
+        if timestamp:
+            actual_timestamp = df.iloc[row_index]['timestamp']
+            # Check if the provided timestamp matches the start of the actual timestamp
+            if not str(actual_timestamp).startswith(timestamp):
+                return {'error': f'Timestamp mismatch at position offset={offset}, index={index}. Expected to start with "{timestamp}", but found "{actual_timestamp}"'}
+        
+        # Get existing comments (handle both empty and populated cases)
+        existing_comments = df.at[row_index, 'comments']
+        
+        # Parse existing comments
+        if pd.isna(existing_comments) or existing_comments == '' or existing_comments == '[]':
+            comments_list = []
+        else:
+            try:
+                # Try to parse as a list
+                import ast
+                comments_list = ast.literal_eval(existing_comments) if isinstance(existing_comments, str) else existing_comments
+                if not isinstance(comments_list, list):
+                    comments_list = []
+            except (ValueError, SyntaxError):
+                # If parsing fails, treat as empty
+                comments_list = []
+        
+        # Add new comment
+        new_comment = f'"{comment}" - {commenter_name}'
+        comments_list.append(new_comment)
+        
+        # Update the comments field
+        df.at[row_index, 'comments'] = str(comments_list)
+        
+        # Save back to CSV
+        df.to_csv(results_file, index=False)
+        
+        return {
+            'success': True,
+            'message': f'Comment added successfully by {commenter_name}',
+            'comment': new_comment,
+            'timestamp': df.iloc[row_index]['timestamp']
+        }
+        
+    except Exception as e:
+        return {'error': f'Failed to add comment: {e}'}
 
 def generate_charts_backend(game, team=None):
     """Generate leaderboard and ratings progress charts, exactly like the Flask API does"""

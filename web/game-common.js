@@ -79,6 +79,18 @@ function openAddResultModal() {
 
 function closeAddResultModal() {
     document.getElementById('addResultModal').style.display = 'none';
+    
+    // Clear all form fields
+    document.getElementById('player1Select').value = '';
+    document.getElementById('player2Select').value = '';
+    const resultRadios = document.querySelectorAll('input[name="result"]');
+    resultRadios.forEach(radio => radio.checked = false);
+    
+    // Clear comment fields if they exist
+    const gameComment = document.getElementById('gameComment');
+    const commenterName = document.getElementById('commenterName');
+    if (gameComment) gameComment.value = '';
+    if (commenterName) commenterName.value = '';
 }
 
 // Load players for result modal

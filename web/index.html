@@ -186,7 +186,7 @@
             margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             transition: all 0.3s ease;
             border-left: 4px solid #667eea;
@@ -339,6 +339,120 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+        
+        /* Comment section styling */
+        .comments-section {
+            margin-top: 15px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+        
+        .existing-comments {
+            margin-bottom: 10px;
+        }
+        
+        .comment-item {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .comment-text {
+            color: #2d3748;
+            margin-bottom: 4px;
+            font-style: italic;
+        }
+        
+        .comment-author {
+            color: #718096;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .add-comment-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .add-comment-button:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        
+        .add-comment-form {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .comment-form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .comment-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .name-input {
+            width: 120px;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .comment-form-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        .submit-comment-button {
+            background: #38a169;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .submit-comment-button:hover {
+            background: #2f855a;
+        }
+        
+        .cancel-comment-button {
+            background: #a0aec0;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .cancel-comment-button:hover {
+            background: #718096;
         }
         
         /* Server offline warning styling */
@@ -495,28 +609,60 @@
                 const showMoreContainer = document.getElementById('show-more-container');
                 
                 if (data.results && data.results.length > 0) {
-                    const resultsHtml = data.results.map((result, index) => `
-                        <div class="result-item">
-                            <div class="result-info">
-                                <div class="result-players">
-                                    ${result.player1} ${result.player1_change !== null && result.player1_change !== undefined ? `<span class="rating-change ${result.player1_change > 0 ? 'positive' : 'negative'}">(${result.player1_change > 0 ? '+' : ''}${result.player1_change})</span>` : ''} vs ${result.player2} ${result.player2_change !== null && result.player2_change !== undefined ? `<span class="rating-change ${result.player2_change > 0 ? 'positive' : 'negative'}">(${result.player2_change > 0 ? '+' : ''}${result.player2_change})</span>` : ''} (${result.result})
+                    const resultsHtml = data.results.map((result, index) => {
+                        const resultId = `result-${offset}-${index}`;
+                        const commentsHtml = result.comments && result.comments.length > 0 
+                            ? result.comments.map(comment => {
+                                // Parse comment format: "comment text - Author"
+                                const match = comment.match(/^"(.+)" - (.+)$/);
+                                if (match) {
+                                    return `<div class="comment-item">
+                                        <div class="comment-text">"${match[1]}"</div>
+                                        <div class="comment-author">- ${match[2]}</div>
+                                    </div>`;
+                                } else {
+                                    return `<div class="comment-item">
+                                        <div class="comment-text">${comment}</div>
+                                    </div>`;
+                                }
+                            }).join('')
+                            : '';
+                        
+                        return `
+                            <div class="result-item">
+                                <div class="result-info">
+                                    <div class="result-players">
+                                        ${result.player1} ${result.player1_change !== null && result.player1_change !== undefined ? `<span class="rating-change ${result.player1_change > 0 ? 'positive' : 'negative'}">(${result.player1_change > 0 ? '+' : ''}${result.player1_change})</span>` : ''} vs ${result.player2} ${result.player2_change !== null && result.player2_change !== undefined ? `<span class="rating-change ${result.player2_change > 0 ? 'positive' : 'negative'}">(${result.player2_change > 0 ? '+' : ''}${result.player2_change})</span>` : ''} (${result.result})
+                                    </div>
+                                    <div class="result-details">
+                                        ${result.game} • ${result.timestamp}
+                                    </div>
+                                    <div class="result-commentary">
+                                        ${result.commentary || 'No commentary available'}
+                                    </div>
+                                    <div class="comments-section">
+                                        <div class="existing-comments">
+                                            ${commentsHtml}
+                                        </div>
+                                        <button class="add-comment-button" onclick="showCommentForm('${resultId}', '${result.timestamp}', ${offset}, ${index})">💬 Add Comment</button>
+                                        <div id="comment-form-${resultId}" class="add-comment-form" style="display: none;">
+                                            <div class="comment-form-row">
+                                                <input type="text" class="comment-input" placeholder="Add your comment..." maxlength="200" id="comment-text-${resultId}">
+                                                <input type="text" class="name-input" placeholder="Your name" maxlength="30" id="comment-name-${resultId}">
+                                            </div>
+                                            <div class="comment-form-buttons">
+                                                <button class="cancel-comment-button" onclick="hideCommentForm('${resultId}')">Cancel</button>
+                                                <button class="submit-comment-button" onclick="submitComment('${resultId}', '${result.timestamp}', ${offset}, ${index})">Submit</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="result-details">
-                                    ${result.game} • ${result.timestamp}
-                                </div>
-                                <div class="result-commentary">
-                                    ${result.commentary || 'No commentary available'}
+                                <div class="result-actions">
+                                    ${(offset === 0 && index === 0) ? `<button class="undo-button" onclick="undoLastResult('${team || ''}')">↶ Undo</button>` : ''}
                                 </div>
                             </div>
-                            <div class="result-actions">
-                                <div class="result-probability">
-                                    <div class="${result.probability >= 0.5 ? 'favorite' : 'underdog'}">P(${result.player1}): ${(result.probability * 100).toFixed(1)}%</div>
-                                    <div class="${result.probability < 0.5 ? 'favorite' : 'underdog'}" style="margin-top: 3px;">P(${result.player2}): ${((1 - result.probability) * 100).toFixed(1)}%</div>
-                                </div>
-                                ${(offset === 0 && index === 0) ? `<button class="undo-button" onclick="undoLastResult('${team || ''}')">↶ Undo</button>` : ''}
-                            </div>
-                        </div>
-                    `).join('');
+                        `;
+                    }).join('');
                     
                     if (append) {
                         resultsContainer.innerHTML += resultsHtml;
@@ -658,6 +804,96 @@
                     btn.disabled = false;
                     btn.textContent = '↶ Undo';
                 });
+            }
+        }
+        
+        // Comment form functions
+        function showCommentForm(resultId, timestamp, offset, index) {
+            // Hide all other comment forms first
+            document.querySelectorAll('.add-comment-form').forEach(form => {
+                form.style.display = 'none';
+            });
+            
+            const form = document.getElementById(`comment-form-${resultId}`);
+            form.style.display = 'block';
+            
+            // Focus on comment input
+            const commentInput = document.getElementById(`comment-text-${resultId}`);
+            if (commentInput) {
+                commentInput.focus();
+            }
+        }
+        
+        function hideCommentForm(resultId) {
+            const form = document.getElementById(`comment-form-${resultId}`);
+            form.style.display = 'none';
+            
+            // Clear form inputs
+            document.getElementById(`comment-text-${resultId}`).value = '';
+            document.getElementById(`comment-name-${resultId}`).value = '';
+        }
+        
+        async function submitComment(resultId, timestamp, offset, index) {
+            const commentText = document.getElementById(`comment-text-${resultId}`).value.trim();
+            const commenterName = document.getElementById(`comment-name-${resultId}`).value.trim();
+            
+            if (!commentText) {
+                alert('Please enter a comment');
+                return;
+            }
+            
+            if (!commenterName) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            try {
+                const submitButton = document.querySelector(`#comment-form-${resultId} .submit-comment-button`);
+                const originalText = submitButton.textContent;
+                submitButton.disabled = true;
+                submitButton.textContent = 'Submitting...';
+                
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = currentTeam 
+                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/comments` : `/api/${currentTeam}/comments`)
+                    : (isLocal ? `http://localhost:8080/api/comments` : `/api/comments`);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        timestamp: timestamp,
+                        comment: commentText,
+                        commenter_name: commenterName,
+                        offset: offset,
+                        index: index
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('💬 Comment added successfully!');
+                    hideCommentForm(resultId);
+                    
+                    // Refresh the results to show the new comment
+                    loadRecentResults(currentTeam, 0, false);
+                } else {
+                    alert(`❌ Error adding comment: ${data.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error submitting comment:', error);
+                alert('❌ Failed to submit comment. Please try again.');
+            } finally {
+                const submitButton = document.querySelector(`#comment-form-${resultId} .submit-comment-button`);
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit';
+                }
             }
         }
     </script>

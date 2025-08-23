@@ -749,6 +749,42 @@ img {
     .probability-value {
         font-size: 10px;
     }
+    
+    .comment-inputs {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .comment-inputs input[type="text"]:first-child,
+    .comment-inputs input[type="text"]:last-child {
+        flex: none;
+        min-width: unset;
+        width: 100%;
+    }
+}
+
+/* Comment input styles */
+.comment-inputs {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.comment-inputs input[type="text"]:first-child {
+    flex: 2;
+}
+
+.comment-inputs input[type="text"]:last-child {
+    flex: 1;
+    min-width: 120px;
+}
+
+.field-hint {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 12px;
+    font-style: italic;
 }
 
 
