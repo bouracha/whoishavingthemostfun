@@ -763,6 +763,110 @@ img {
     }
 }
 
+/* Player Images Overlay Styles */
+#playerImagesOverlay {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+    pointer-events: none; /* Allow clicks to pass through to the chart */
+}
+
+.player-image {
+    position: absolute;
+    width: 90px;  /* 1.5x of 60px */
+    height: 90px; /* 1.5x of 60px */
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+    object-fit: cover;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+    pointer-events: auto; /* Re-enable pointer events for the images themselves */
+    cursor: pointer;
+}
+
+.player-image:hover {
+    transform: scale(1.15) translate(-50%, -50%);
+    border-color: rgba(255, 255, 255, 1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    z-index: 20;
+}
+
+.player-image.loading {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+.player-image.error {
+    background-color: #f8d7da;
+    border-color: #f1c0c7;
+    opacity: 0.7;
+}
+
+/* Pulse animation for loading state */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    100% { opacity: 1.0; }
+}
+
+.medal-image {
+    position: absolute;
+    width: 48px;  /* Slightly smaller than player images */
+    height: 48px;
+    object-fit: contain;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+    cursor: pointer;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.medal-image:hover {
+    transform: scale(1.1) translate(-50%, -50%);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+.medal-image.loading {
+    opacity: 0.7;
+    animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+/* Responsive adjustments for player images */
+@media (max-width: 768px) {
+    .player-image {
+        width: 75px;  /* 1.5x of 50px */
+        height: 75px; /* 1.5x of 50px */
+        border-width: 2px;
+    }
+    
+    .player-image:hover {
+        transform: scale(1.1) translate(-50%, -50%);
+    }
+    
+    .medal-image {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .player-image {
+        width: 66px;  /* 1.5x of 44px */
+        height: 66px; /* 1.5x of 44px */
+        border-width: 1.5px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    
+    .player-image:hover {
+        transform: scale(1.05) translate(-50%, -50%);
+    }
+    
+    .medal-image {
+        width: 36px;
+        height: 36px;
+    }
+}
+
 /* Comment input styles */
 .comment-inputs {
     display: flex;

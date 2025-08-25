@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Game Elo Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <link rel="stylesheet" href="/game-styles.css">
 </head>
 <body>
@@ -29,6 +30,12 @@
         <div id="imageContainer">
             <img id="displayImage" src="" alt="Game Leaderboard">
         </div>
+
+        <!-- Interactive Chart Containers -->
+        <div id="leaderboardChart" style="display: none; width: 100%; height: 1000px; position: relative;">
+            <div id="playerImagesOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;"></div>
+        </div>
+        <div id="ratingsProgressChart" style="display: none; width: 100%; height: 600px;"></div>
 
         <!-- Probability Matrix Container -->
         <div id="probabilityContainer" style="display: none;">
@@ -213,15 +220,20 @@
             document.getElementById('addPlayerTitle').textContent = `Add New ${config.name} Player`;
             document.getElementById('addResultTitle').textContent = `Add ${config.name} Game Result`;
             
-            // Set initial image
-            let initialImageSrc;
-            if (team) {
-                initialImageSrc = `/api/${team}/charts/${gameType}/leaderboard.png`;
-            } else {
-                initialImageSrc = config.leaderboardImage;
+            // Set initial display to interactive leaderboard
+            document.getElementById('imageContainer').style.display = 'none';
+            document.getElementById('leaderboardChart').style.display = 'block';
+            document.getElementById('ratingsProgressChart').style.display = 'none';
+            document.getElementById('probabilityContainer').style.display = 'none';
+            
+            // Set active button state
+            const leaderboardButton = document.querySelector('.button');
+            if (leaderboardButton) {
+                leaderboardButton.classList.add('active');
             }
-            document.getElementById('displayImage').src = initialImageSrc;
-            document.getElementById('displayImage').alt = `${config.name} Leaderboard`;
+            
+            // Load initial interactive leaderboard
+            loadLeaderboardChart();
             
             // Load players
             loadPlayers();
@@ -398,23 +410,20 @@
             const config = gameConfig[gameType];
             const team = getTeam();
             
-            let imageSrc;
-            if (team) {
-                imageSrc = `/api/${team}/charts/${gameType}/leaderboard.png`;
-            } else {
-                imageSrc = config.leaderboardImage;
-            }
-            
-            document.getElementById('displayImage').src = imageSrc;
-            document.getElementById('displayImage').alt = `${config.name} Leaderboard`;
-            
-            // Show image container, hide probability container
-            document.getElementById('imageContainer').style.display = 'block';
+            // Hide other containers
+            document.getElementById('imageContainer').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'none';
+            document.getElementById('ratingsProgressChart').style.display = 'none';
+            
+            // Show leaderboard chart container
+            document.getElementById('leaderboardChart').style.display = 'block';
             
             // Update button states
             document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
+            
+            // Load and render interactive leaderboard
+            loadLeaderboardChart();
         }
 
         function showRatingsProgress() {
@@ -422,32 +431,37 @@
             const config = gameConfig[gameType];
             const team = getTeam();
             
-            let imageSrc;
-            if (team) {
-                imageSrc = `/api/${team}/charts/${gameType}/ratings_progress.png`;
-            } else {
-                imageSrc = config.ratingsImage;
-            }
-            
-            document.getElementById('displayImage').src = imageSrc;
-            document.getElementById('displayImage').alt = `${config.name} Ratings Progress`;
-            
-            // Show image container, hide probability container
-            document.getElementById('imageContainer').style.display = 'block';
+            // Hide other containers
+            document.getElementById('imageContainer').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'none';
+            document.getElementById('leaderboardChart').style.display = 'none';
+            
+            // Clear player images overlay
+            clearPlayerImagesOverlay();
+            
+            // Show ratings progress chart container
+            document.getElementById('ratingsProgressChart').style.display = 'block';
             
             // Update button states
             document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
+            
+            // Load and render interactive ratings progress
+            loadRatingsProgressChart();
         }
 
         function showProbabilityMatrix() {
             const gameType = getGameType();
             const team = getTeam();
             
-            // Hide image container, show probability container
+            // Hide all chart containers, show probability container
             document.getElementById('imageContainer').style.display = 'none';
+            document.getElementById('leaderboardChart').style.display = 'none';
+            document.getElementById('ratingsProgressChart').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'block';
+            
+            // Clear player images overlay
+            clearPlayerImagesOverlay();
             
             // Update button states
             document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
@@ -595,6 +609,383 @@
             });
         }
 
+        // Interactive chart loading functions
+        async function loadLeaderboardChart() {
+            const gameType = getGameType();
+            const team = getTeam();
+            
+            let apiUrl;
+            if (team) {
+                apiUrl = `/api/${team}/charts/${gameType}/leaderboard`;
+            } else {
+                apiUrl = `/api/charts/${gameType}/leaderboard`;
+            }
+            
+            try {
+                console.log('=== LOADING LEADERBOARD CHART ===');
+                console.log('Game type:', gameType);
+                console.log('Team:', team);
+                console.log('Fetching leaderboard data from:', apiUrl);
+                
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                console.log('Leaderboard response status:', response.status);
+                console.log('Leaderboard response data:', data);
+                
+                if (data.error && data.error.includes('Forbidden')) {
+                    // If team-specific endpoint fails with auth error, try the main endpoint
+                    console.log('Team endpoint failed, trying main endpoint...');
+                    const fallbackUrl = `/api/charts/${gameType}/leaderboard`;
+                    const fallbackResponse = await fetch(fallbackUrl);
+                    const fallbackData = await fallbackResponse.json();
+                    
+                    if (fallbackData.error) {
+                        console.error('Fallback API returned error:', fallbackData.error);
+                        document.getElementById('leaderboardChart').innerHTML = `<div style="padding: 20px; text-align: center;">Error: ${fallbackData.error}</div>`;
+                        return;
+                    }
+                    
+                    console.log('Using fallback data for chart rendering');
+                    renderLeaderboardChart(fallbackData);
+                    return;
+                }
+                
+                if (data.error) {
+                    console.error('API returned error:', data.error);
+                    document.getElementById('leaderboardChart').innerHTML = `<div style="padding: 20px; text-align: center;">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                console.log('Calling renderLeaderboardChart with data:', data);
+                renderLeaderboardChart(data);
+            } catch (error) {
+                console.error('Error loading leaderboard data:', error);
+                document.getElementById('leaderboardChart').innerHTML = '<div style="padding: 20px; text-align: center;">Failed to load leaderboard data</div>';
+            }
+        }
+        
+        async function loadRatingsProgressChart() {
+            const gameType = getGameType();
+            const team = getTeam();
+            
+            let apiUrl;
+            if (team) {
+                apiUrl = `/api/${team}/charts/${gameType}/ratings-progress`;
+            } else {
+                apiUrl = `/api/charts/${gameType}/ratings-progress`;
+            }
+            
+            try {
+                console.log('Fetching ratings progress data from:', apiUrl);
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                console.log('Ratings progress response:', response.status, data);
+                
+                if (data.error && data.error.includes('Forbidden')) {
+                    // If team-specific endpoint fails with auth error, try the main endpoint
+                    console.log('Team endpoint failed, trying main endpoint...');
+                    const fallbackUrl = `/api/charts/${gameType}/ratings-progress`;
+                    const fallbackResponse = await fetch(fallbackUrl);
+                    const fallbackData = await fallbackResponse.json();
+                    
+                    if (fallbackData.error) {
+                        console.error('Fallback API returned error:', fallbackData.error);
+                        document.getElementById('ratingsProgressChart').innerHTML = `<div style="padding: 20px; text-align: center;">Error: ${fallbackData.error}</div>`;
+                        return;
+                    }
+                    
+                    renderRatingsProgressChart(fallbackData);
+                    return;
+                }
+                
+                if (data.error) {
+                    console.error('API returned error:', data.error);
+                    document.getElementById('ratingsProgressChart').innerHTML = `<div style="padding: 20px; text-align: center;">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                renderRatingsProgressChart(data);
+            } catch (error) {
+                console.error('Error loading ratings progress data:', error);
+                document.getElementById('ratingsProgressChart').innerHTML = '<div style="padding: 20px; text-align: center;">Failed to load ratings progress data</div>';
+            }
+        }
+        
+        function renderLeaderboardChart(data) {
+            // Main bars
+            const barTrace = {
+                x: data.players.map(p => p.rating),
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                type: 'bar',
+                orientation: 'h',
+                width: data.players.map(() => 0.96), // 0.8x thickness (1.2 * 0.8 = 0.96)
+                marker: {
+                    color: data.players.map(p => p.color),
+                    line: { color: 'rgba(255,255,255,0.8)', width: 1 },
+                    opacity: 0.8
+                },
+                showlegend: false,
+                hovertemplate: '<b>%{customdata}</b><extra></extra>',
+                customdata: data.players.map((p, index) => {
+                    const name = p.display_name || p.name;
+                    const rating = Math.round(p.rating);
+                    return `${name}: ${rating}`;
+                })
+            };
+
+            // Position numbers (left side)
+            const positionTrace = {
+                x: data.players.map(p => p.rating * 0.05), // 5% from left edge
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                text: data.players.map((p, index) => `${index + 1}.`),
+                mode: 'text',
+                textfont: { size: 20, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textposition: 'middle center',
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            // Player names (center-left, adjusted for images)
+            const nameTrace = {
+                x: data.players.map(p => p.rating * 0.50), // Center position with more space from medals
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                text: data.players.map((p, index) => {
+                    const name = p.display_name || p.name;
+                    return name;
+                }),
+                mode: 'text',
+                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textposition: 'middle center',
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            // Ratings (right side)
+            const ratingTrace = {
+                x: data.players.map(p => p.rating * 0.9), // 90% from left edge
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                text: data.players.map(p => Math.round(p.rating)),
+                mode: 'text',
+                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textposition: 'middle center',
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            const traces = [barTrace, positionTrace, nameTrace, ratingTrace];
+            
+            const layout = {
+                title: {
+                    text: `🏆 ${data.game.charAt(0).toUpperCase() + data.game.slice(1)} Leaderboard`,
+                    font: { size: 24, color: '#2d3748', family: 'Inter, sans-serif' }
+                },
+                xaxis: { 
+                    title: {
+                        text: 'ELO Rating',
+                        font: { size: 14, color: '#4a5568' }
+                    },
+                    showgrid: true,
+                    gridcolor: 'rgba(0,0,0,0.1)',
+                    tickfont: { color: '#4a5568' }
+                },
+                yaxis: { 
+                    title: '',
+                    showgrid: false,
+                    showticklabels: false,  // Hide the y-axis labels completely
+                    zeroline: false,
+                    range: [-0.6, (data.players.length - 1) * 1.2 + 0.6], // Adjusted range for 1.2x spacing
+                    dtick: 1 // Ensure proper spacing between bars
+                },
+                margin: { l: 50, r: 50, t: 80, b: 50 },
+                showlegend: false,
+                plot_bgcolor: 'rgba(248,250,252,0.3)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Inter, sans-serif' }
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'],
+                displaylogo: false
+            };
+            
+            Plotly.newPlot('leaderboardChart', traces, layout, config).then(() => {
+                // Add player images and medal annotations
+                addPlayerImagesAndMedals(data);
+            });
+        }
+        
+        function renderLeaderboardChartUniform(data) {
+            // Alternative visualization with uniform bar lengths (like PNG)
+            const uniformLength = Math.max(...data.players.map(p => p.rating)) * 1.1; // All bars same length
+            
+            // Main bars (all same length)
+            const barTrace = {
+                x: data.players.map(p => uniformLength),
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                type: 'bar',
+                orientation: 'h',
+                width: data.players.map(() => 0.96), // 0.8x thickness (1.2 * 0.8 = 0.96)
+                marker: {
+                    color: data.players.map(p => p.color),
+                    line: { color: 'rgba(255,255,255,0.8)', width: 1 },
+                    opacity: 0.8
+                },
+                showlegend: false,
+                hovertemplate: '<b>%{customdata}</b><extra></extra>',
+                customdata: data.players.map((p, index) => {
+                    const name = p.display_name || p.name;
+                    const rating = Math.round(p.rating);
+                    return `${name}: ${rating}`;
+                })
+            };
+
+            // Position numbers (left side)
+            const positionTrace = {
+                x: data.players.map(p => uniformLength * 0.05), // 5% from left edge
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                text: data.players.map((p, index) => `${index + 1}.`),
+                mode: 'text',
+                textfont: { size: 20, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textposition: 'middle center',
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            // Player names (center)
+            const nameTrace = {
+                x: data.players.map(p => uniformLength * 0.5), // Center of bars
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                text: data.players.map((p, index) => {
+                    const name = p.display_name || p.name;
+                    return name;
+                }),
+                mode: 'text',
+                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textposition: 'middle center',
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            // Ratings (right side)
+            const ratingTrace = {
+                x: data.players.map(p => uniformLength * 0.9), // 90% from left edge
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                text: data.players.map(p => Math.round(p.rating)),
+                mode: 'text',
+                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textposition: 'middle center',
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            const traces = [barTrace, positionTrace, nameTrace, ratingTrace];
+            
+            const layout = {
+                title: {
+                    text: `🏆 ${data.game.charAt(0).toUpperCase() + data.game.slice(1)} Leaderboard`,
+                    font: { size: 24, color: '#2d3748', family: 'Inter, sans-serif' }
+                },
+                xaxis: { 
+                    title: '',
+                    showgrid: false,
+                    showticklabels: false,  // Hide x-axis since bars are uniform
+                    zeroline: false
+                },
+                yaxis: { 
+                    title: '',
+                    showgrid: false,
+                    showticklabels: false,
+                    zeroline: false,
+                    range: [-0.6, (data.players.length - 1) * 1.2 + 0.6], // Adjusted range for 1.2x spacing
+                    dtick: 1 // Ensure proper spacing between bars
+                },
+                margin: { l: 50, r: 50, t: 80, b: 50 },
+                showlegend: false,
+                plot_bgcolor: 'rgba(248,250,252,0.3)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Inter, sans-serif' }
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'],
+                displaylogo: false
+            };
+            
+            Plotly.newPlot('leaderboardChart', traces, layout, config);
+        }
+        
+        function renderRatingsProgressChart(data) {
+            // Sort players by current rating (highest to lowest)
+            const sortedPlayers = [...data.players].sort((a, b) => b.current_rating - a.current_rating);
+            
+            const traces = sortedPlayers.map(player => ({
+                x: player.x,  // Use 'x' instead of 'timestamps'
+                y: player.y,  // Use 'y' instead of 'ratings'
+                error_y: {
+                    type: 'data',
+                    array: player.ranges.map(r => r / 2), // Convert range to half-range for error bars
+                    visible: true,
+                    color: player.color,
+                    thickness: 2,
+                    width: 0
+                },
+                mode: 'lines+markers',
+                name: player.name,  // Use 'name' instead of 'display_name'
+                line: { 
+                    width: 3,
+                    color: player.color
+                },
+                marker: { 
+                    size: 6,
+                    color: player.color
+                },
+                hovertemplate: `<b>%{fullData.name}</b><br>Rating: %{y:.0f}<extra></extra>`
+            }));
+            
+            const layout = {
+                title: {
+                    text: `📈 ${data.game.charAt(0).toUpperCase() + data.game.slice(1)} Ratings Progress`,
+                    font: { size: 20 }
+                },
+                xaxis: { 
+                    title: 'Date',
+                    showgrid: true,
+                    gridcolor: 'rgba(0,0,0,0.1)'
+                },
+                yaxis: { 
+                    title: 'ELO Rating',
+                    showgrid: true,
+                    gridcolor: 'rgba(0,0,0,0.1)'
+                },
+                margin: { l: 50, r: 50, t: 80, b: 50 },
+                showlegend: true,
+                legend: { 
+                    orientation: 'v',
+                    x: 1.02,
+                    y: 1
+                },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Inter, sans-serif' },
+                hovermode: 'x unified'
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'],
+                displaylogo: false
+            };
+            
+            Plotly.newPlot('ratingsProgressChart', traces, layout, config);
+        }
+
         // Go to appropriate home page
         function goHome() {
             const team = getTeam();
@@ -605,6 +996,276 @@
             }
         }
 
+        // Player Images and Medal Images as Plotly Images
+        function addPlayerImagesAndMedals(data) {
+            console.log('addPlayerImagesAndMedals called with data:', data);
+            
+            if (!data || !data.players || data.players.length === 0) {
+                console.log('No player data available for images');
+                return;
+            }
+            
+            console.log('Found', data.players.length, 'players for images and medals');
+            
+            // Create image layout for both player images and medals
+            const images = [];
+            
+            data.players.forEach((player, index) => {
+                const playerName = player.player;
+                if (!playerName) {
+                    console.log('Skipping player at index', index, '- no player name');
+                    return;
+                }
+                
+                console.log('Adding images for player:', playerName, 'at index:', index);
+                
+                // Calculate position in chart coordinates
+                const yPosition = (data.players.length - index - 1) * 1.2; // 1.2x spaced Plotly y-coordinate
+                const playerImageX = player.rating * 0.7; // 70% across the bar (between name and rating)
+                const medalImageX = player.rating * 0.25; // 25% across the bar (further left of name)
+                
+                // Add player image
+                const playerImagePath = `/images/players/${playerName}.png`;
+                images.push({
+                    source: playerImagePath,
+                    xref: 'x',
+                    yref: 'y',
+                    x: playerImageX,
+                    y: yPosition,
+                    sizex: player.rating * 0.12, // 12% of rating for width
+                    sizey: 1.8, // Height relative to bar
+                    sizing: 'contain',
+                    opacity: 1,
+                    layer: 'above',
+                    xanchor: 'center',
+                    yanchor: 'middle'
+                });
+                
+                // Add medal image for top 3
+                const position = index + 1;
+                if (position <= 3) {
+                    const medalImagePath = `/images/medals/${position === 1 ? '1st' : position === 2 ? '2nd' : '3rd'}.png`;
+                    images.push({
+                        source: medalImagePath,
+                        xref: 'x',
+                        yref: 'y',
+                        x: medalImageX,
+                        y: yPosition,
+                        sizex: player.rating * 0.08, // Smaller than player images
+                        sizey: 1.2, // Height relative to bar
+                        sizing: 'contain',
+                        opacity: 1,
+                        layer: 'above',
+                        xanchor: 'center',
+                        yanchor: 'middle'
+                    });
+                }
+            });
+            
+            console.log('Created', images.length, 'image objects (players + medals)');
+            
+            // Update the chart layout with images
+            Plotly.relayout('leaderboardChart', {
+                images: images
+            }).then(() => {
+                console.log('Successfully added player images and medals to chart');
+            }).catch(error => {
+                console.error('Error adding images:', error);
+                // Fallback to HTML overlay approach
+                console.log('Falling back to HTML overlay approach');
+                addPlayerImagesAndMedalsOverlay(data);
+            });
+        }
+        
+        // HTML Overlay fallback function with medals
+        function addPlayerImagesAndMedalsOverlay(data) {
+            console.log('Using HTML overlay fallback for player images and medals');
+            
+            const overlay = document.getElementById('playerImagesOverlay');
+            const chartDiv = document.getElementById('leaderboardChart');
+            
+            // Clear any existing images
+            overlay.innerHTML = '';
+            
+            if (!data || !data.players || data.players.length === 0) {
+                return;
+            }
+            
+            setTimeout(() => {
+                data.players.forEach((player, index) => {
+                    const playerName = player.player;
+                    if (!playerName) return;
+                    
+                    // Use improved position calculation
+                    const yPosition = calculatePlayerImagePosition(index, data.players.length);
+                    
+                    // Create player image
+                    createPlayerImage(playerName, yPosition, overlay);
+                    
+                    // Create medal image for top 3
+                    const position = index + 1;
+                    if (position <= 3) {
+                        createMedalImage(position, yPosition, overlay);
+                    }
+                });
+            }, 500);
+        }
+        
+        // Keep the simple version as backup
+        function addPlayerImagesOverlay(data) {
+            addPlayerImagesAndMedalsOverlay(data);
+        }
+
+        function clearPlayerImagesOverlay() {
+            // Clear HTML overlay
+            const overlay = document.getElementById('playerImagesOverlay');
+            if (overlay) {
+                overlay.innerHTML = '';
+            }
+            
+            // Clear Plotly images and annotations
+            try {
+                Plotly.relayout('leaderboardChart', {
+                    images: [],
+                    annotations: []
+                });
+            } catch (error) {
+                console.log('Could not clear Plotly images/annotations:', error);
+            }
+        }
+        
+        function calculatePlayerImagePosition(playerIndex, totalPlayers) {
+            // Simple calculation based on chart height and player position
+            const chartHeight = 1000; // Updated chart height
+            const marginTop = 80; // Title margin
+            const marginBottom = 50; // Bottom margin
+            const plotHeight = chartHeight - marginTop - marginBottom;
+            
+            // Player bars are evenly distributed in the plot area
+            const barHeight = plotHeight / totalPlayers;
+            const playerY = marginTop + (playerIndex * barHeight) + (barHeight / 2);
+            
+            console.log('Player', playerIndex, 'positioned at y:', playerY);
+            
+            return playerY;
+        }
+        
+        function createPlayerImage(playerName, yPosition, overlay) {
+            console.log('createPlayerImage:', playerName, 'at y:', yPosition);
+            
+            const img = document.createElement('img');
+            img.className = 'player-image loading';
+            img.alt = playerName;
+            img.title = playerName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            // Position the image at 65% from the left (between name and rating)
+            img.style.left = '65%';
+            img.style.top = `${yPosition}px`;
+            img.style.transform = 'translate(-50%, -50%)';
+            
+            console.log('Image positioned at left: 65%, top:', yPosition + 'px');
+            
+            // Set up image loading with fallback
+            setupImageWithFallback(img, playerName);
+            
+            overlay.appendChild(img);
+            console.log('Image appended to overlay. Total overlay children:', overlay.children.length);
+        }
+        
+        function createMedalImage(position, yPosition, overlay) {
+            console.log('createMedalImage: position', position, 'at y:', yPosition);
+            
+            const img = document.createElement('img');
+            img.className = 'medal-image loading';
+            img.alt = `${position === 1 ? '1st' : position === 2 ? '2nd' : '3rd'} place`;
+            img.title = `${position === 1 ? '1st' : position === 2 ? '2nd' : '3rd'} place`;
+            
+            // Position the medal at 25% from the left (further left of name)
+            img.style.left = '25%';
+            img.style.top = `${yPosition}px`;
+            img.style.transform = 'translate(-50%, -50%)';
+            
+            // Set up medal image source
+            const medalPath = `/images/medals/${position === 1 ? '1st' : position === 2 ? '2nd' : '3rd'}.png`;
+            
+            img.onload = function() {
+                console.log('Medal image loaded successfully for position', position);
+                img.classList.remove('loading');
+            };
+            
+            img.onerror = function() {
+                console.log('Medal image failed to load for position', position);
+                img.classList.remove('loading');
+                img.style.display = 'none';
+            };
+            
+            img.src = medalPath;
+            overlay.appendChild(img);
+            console.log('Medal appended to overlay. Total overlay children:', overlay.children.length);
+        }
+        
+        function setupImageWithFallback(img, playerName) {
+            const team = getTeam();
+            let primaryImagePath, fallbackImagePath;
+            
+            if (team) {
+                // Team context - try team-specific path first, then general path
+                primaryImagePath = `/images/players/${playerName}.png`;
+                fallbackImagePath = '/images/players/default.png';
+            } else {
+                // General context
+                primaryImagePath = `/images/players/${playerName}.png`;
+                fallbackImagePath = '/images/players/default.png';
+            }
+            
+            console.log('Loading image for', playerName, 'primary path:', primaryImagePath, 'fallback:', fallbackImagePath);
+            
+            // First, try to load the specific player image
+            img.onload = function() {
+                console.log('Image loaded successfully for', playerName, 'src:', this.src);
+                img.classList.remove('loading');
+                img.classList.remove('error');
+            };
+            
+            img.onerror = function() {
+                console.log('Image failed to load for', playerName, 'src:', this.src);
+                // If the specific image fails, try the default
+                if (img.src !== window.location.origin + fallbackImagePath) {
+                    console.log('Trying fallback image:', fallbackImagePath);
+                    img.src = fallbackImagePath;
+                } else {
+                    // Even default image failed - show placeholder
+                    console.log('Fallback image also failed for', playerName);
+                    img.classList.remove('loading');
+                    img.classList.add('error');
+                    img.style.display = 'none'; // Hide broken images
+                }
+            };
+            
+            // Start loading the primary image
+            img.src = primaryImagePath;
+        }
+        
+        // Handle window resize to reposition images
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                // Check if leaderboard is visible and has data
+                const chartDiv = document.getElementById('leaderboardChart');
+                if (chartDiv.style.display !== 'none') {
+                    // Get current data and re-render images
+                    const overlay = document.getElementById('playerImagesOverlay');
+                    if (overlay.children.length > 0) {
+                        // Re-trigger image positioning after Plotly resizes
+                        setTimeout(() => {
+                            // Force relayout if needed
+                            Plotly.Plots.resize('leaderboardChart');
+                        }, 100);
+                    }
+                }
+            }, 250);
+        });
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', initializeGame);
