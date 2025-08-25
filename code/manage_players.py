@@ -53,9 +53,9 @@ def regenerate_charts(game):
     print(f"\n📊 Regenerating charts for {game}...")
     
     try:
-        # Generate leaderboard
+        # Generate leaderboard JSON
         print(f"  📈 Generating leaderboard...")
-        subprocess.run([sys.executable, 'leaderboard.py', game], check=True)
+        subprocess.run([sys.executable, 'leaderboard.py', game, '--json'], check=True)
         
         # Generate rating charts for all remaining players
         database_path = "database" if os.path.exists("database") else "../database"
@@ -64,8 +64,8 @@ def regenerate_charts(game):
         if os.path.exists(game_path):
             csv_files = [f"{game_path}/{f}" for f in os.listdir(game_path) if f.endswith('.csv')]
             if csv_files:
-                print(f"  📊 Generating rating progress charts...")
-                subprocess.run([sys.executable, 'graph.py'] + csv_files, check=True)
+                print(f"  📊 Generating rating progress JSON...")
+                subprocess.run([sys.executable, 'graph.py'] + csv_files + ['--json'], check=True)
             else:
                 print(f"  ℹ️  No players remaining in {game}")
         

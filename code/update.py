@@ -200,6 +200,7 @@ def log_result_to_team(
     timestamp: Optional[str] = None,
     player1_change: Optional[float] = None,
     player2_change: Optional[float] = None,
+    comment: Optional[str] = None,
 ):
     """
     Log a game result to the results.csv file for recent results display.
@@ -260,7 +261,7 @@ def log_result_to_team(
         'probability': f"{probability:.3f}",
         'player1_change': int(round(player1_change)) if player1_change is not None else pd.NA,
         'player2_change': int(round(player2_change)) if player2_change is not None else pd.NA,
-        'comments': '',
+        'comments': comment if comment else '',
     }
     
     # Append to the results file
@@ -317,6 +318,434 @@ def log_deleted_result(player1, player2, result, game, team=None, probability=No
     df_new.to_csv(deleted_file, mode='a', header=False, index=False)
     
     print(f"Logged deleted result to {deleted_file}: {player1} vs {player2} ({result}) - deleted at {deletion_ts}")
+
+def log_pending_result(
+    player1,
+    player2,
+    result,
+    game,
+    team,
+    probability,
+    timestamp: Optional[str] = None,
+    player1_change: Optional[float] = None,
+    player2_change: Optional[float] = None,
+    comment: Optional[str] = None,
+):
+    """
+    Log a game result to the pending_results.csv file for admin approval.
+    Works for both team games and main database games.
+    """
+    import os
+    
+    # Determine the correct path based on where we're running from
+    database_path = "database" if os.path.exists("database") else "../database"
+    
+    if team:
+        pending_file = f"{database_path}/{team}/pending_results.csv"
+        # Ensure team directory exists
+        os.makedirs(os.path.dirname(pending_file), exist_ok=True)
+    else:
+        pending_file = f"{database_path}/pending_results.csv"
+        # Ensure main database directory exists
+        os.makedirs(database_path, exist_ok=True)
+    
+    # Create headers if file doesn't exist (same structure as results.csv + admin notes)
+    if not os.path.exists(pending_file):
+        headers = [
+            'timestamp', 'game', 'player1', 'player2', 'result', 'probability',
+            'player1_change', 'player2_change', 'comments', 'submission_timestamp', 'notes_to_admin'
+        ]
+        df_headers = pd.DataFrame(columns=headers)
+        df_headers.to_csv(pending_file, index=False)
+    else:
+        # Ensure file has all columns; if missing, backfill them
+        try:
+            existing = pd.read_csv(pending_file)
+            changed = False
+            required_columns = ['player1_change', 'player2_change', 'comments', 'submission_timestamp', 'notes_to_admin']
+            for col in required_columns:
+                if col not in existing.columns:
+                    if col == 'submission_timestamp':
+                        existing[col] = pd.NA
+                    elif col in ['comments', 'notes_to_admin']:
+                        existing[col] = ''
+                    else:
+                        existing[col] = pd.NA
+                    changed = True
+            if changed:
+                existing.to_csv(pending_file, index=False)
+        except Exception:
+            # If anything goes wrong, proceed without altering existing file
+            pass
+    
+    # Prepare the pending result entry - always use UK time
+    uk_time = datetime.utcnow()
+    # Add 1 hour for BST (British Summer Time) - March to October
+    if uk_time.month >= 3 and uk_time.month <= 10:
+        uk_time = uk_time + timedelta(hours=1)
+    
+    game_timestamp = timestamp if timestamp else uk_time.strftime('%Y-%m-%d %H:%M:%S')
+    submission_timestamp = uk_time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    new_entry = {
+        'timestamp': game_timestamp,
+        'game': game,
+        'player1': player1,
+        'player2': player2,
+        'result': result,
+        'probability': f"{probability:.3f}",
+        'player1_change': int(round(player1_change)) if player1_change is not None else pd.NA,
+        'player2_change': int(round(player2_change)) if player2_change is not None else pd.NA,
+        'comments': comment if comment else '',
+        'submission_timestamp': submission_timestamp,
+        'notes_to_admin': '',
+    }
+    
+    # Append to the pending results file
+    df_new = pd.DataFrame([new_entry])
+    df_new.to_csv(pending_file, mode='a', header=False, index=False)
+    
+    print(
+        f"Logged pending result to {pending_file}: {player1} vs {player2} ({result}) - "
+        f"probability: {probability:.3f}, submitted at {submission_timestamp}"
+    )
+
+def approve_pending_results(team=None):
+    """
+    Approve all pending results by processing them in chronological order.
+    Reads from pending_results.csv and processes each result using submit_game_with_charts().
+    
+    Args:
+        team (str): Optional team name. If None, uses main database.
+    
+    Returns:
+        dict: Result summary with success/error info and processing details
+    """
+    try:
+        # Determine the correct path based on where we're running from
+        database_path = "database" if os.path.exists("database") else "../database"
+        
+        # Determine pending results file path
+        if team:
+            pending_file = f"{database_path}/{team}/pending_results.csv"
+        else:
+            pending_file = f"{database_path}/pending_results.csv"
+        
+        # Check if pending results file exists
+        if not os.path.exists(pending_file):
+            return {'success': True, 'message': 'No pending results to approve', 'processed_count': 0}
+        
+        # Read the pending results file
+        df = pd.read_csv(pending_file)
+        
+        if df.empty:
+            return {'success': True, 'message': 'No pending results to approve', 'processed_count': 0}
+        
+        # Sort by submission timestamp to process in chronological order (oldest first)
+        # Use timestamp as fallback if submission_timestamp is not available
+        if 'submission_timestamp' in df.columns:
+            df['sort_timestamp'] = pd.to_datetime(df['submission_timestamp'], format='mixed')
+        else:
+            df['sort_timestamp'] = pd.to_datetime(df['timestamp'], format='mixed')
+        
+        df_sorted = df.sort_values('sort_timestamp', ascending=True)
+        
+        processed_results = []
+        failed_results = []
+        
+        for index, row in df_sorted.iterrows():
+            try:
+                # Extract result data
+                player1 = row['player1']
+                player2 = row['player2']
+                result = row['result']
+                game = row['game']
+                timestamp = row['timestamp']
+                
+                # Process the result using existing logic (comment will be handled separately)
+                # Don't generate charts for each individual result - we'll do it once at the end
+                result_data = submit_game_without_charts(
+                    player1=player1,
+                    player2=player2,
+                    result=result,
+                    game=game,
+                    team=team,
+                    timestamp=timestamp
+                )
+                
+                # After successful processing, copy comment from pending to results
+                if (result_data.get('success') and 'comments' in row and row['comments'] 
+                    and isinstance(row['comments'], str) and row['comments'].strip()):
+                    try:
+                        database_path = "database" if os.path.exists("database") else "../database"
+                        results_file = f"{database_path}/{team}/results.csv" if team else f"{database_path}/results.csv"
+                        
+                        if os.path.exists(results_file):
+                            results_df = pd.read_csv(results_file)
+                            if not results_df.empty:
+                                # Update the last result (most recent) with the pending comment
+                                results_df.loc[results_df.index[-1], 'comments'] = row['comments'].strip()
+                                results_df.to_csv(results_file, index=False)
+                    except Exception as e:
+                        print(f"Warning: Could not transfer comment: {e}")
+                
+                if result_data.get('success'):
+                    processed_results.append({
+                        'player1': player1,
+                        'player2': player2,
+                        'result': result,
+                        'game': game,
+                        'timestamp': timestamp
+                    })
+                    print(f"✅ Approved: {player1} vs {player2} ({result}) in {game}")
+                else:
+                    failed_results.append({
+                        'player1': player1,
+                        'player2': player2,
+                        'result': result,
+                        'game': game,
+                        'error': result_data.get('error', 'Unknown error')
+                    })
+                    print(f"❌ Failed to approve: {player1} vs {player2} ({result}) - {result_data.get('error')}")
+                    
+            except Exception as e:
+                failed_results.append({
+                    'player1': row.get('player1', 'Unknown'),
+                    'player2': row.get('player2', 'Unknown'),
+                    'result': row.get('result', 'Unknown'),
+                    'game': row.get('game', 'Unknown'),
+                    'error': str(e)
+                })
+                print(f"❌ Exception processing result: {e}")
+        
+        # Clear the pending results file if all results were processed successfully
+        if len(failed_results) == 0:
+            # Remove the entire file
+            os.remove(pending_file)
+            print(f"✅ Cleared pending results file: {pending_file}")
+        else:
+            # Keep failed results in the file for retry
+            failed_df = df_sorted[df_sorted.apply(
+                lambda row: any(
+                    failed['player1'] == row['player1'] and 
+                    failed['player2'] == row['player2'] and
+                    failed['result'] == row['result'] and
+                    failed['game'] == row['game']
+                    for failed in failed_results
+                ), axis=1
+            )]
+            failed_df.to_csv(pending_file, index=False)
+            print(f"⚠️  Kept {len(failed_results)} failed results in {pending_file}")
+        
+        # Ensure we have the correct count
+        total_pending = len(df_sorted)
+        processed_count = len(processed_results)
+        failed_count = len(failed_results)
+        
+        return {
+            'success': True,
+            'message': f'Processed {processed_count} pending results successfully',
+            'processed_count': processed_count,
+            'failed_count': failed_count,
+            'total_pending': total_pending,
+            'processed_results': processed_results,
+            'failed_results': failed_results
+        }
+        
+    except Exception as e:
+        return {'success': False, 'error': f'Failed to approve pending results: {e}'}
+
+def delete_pending_result(index, team=None):
+    """
+    Delete a specific pending result by index.
+    
+    Args:
+        index (int): Index of the result to delete (0-based)
+        team (str): Optional team name. If None, uses main database.
+    
+    Returns:
+        dict: Result summary with success/error info
+    """
+    try:
+        # Determine the correct path based on where we're running from
+        database_path = "database" if os.path.exists("database") else "../database"
+        
+        # Determine pending results file path
+        if team:
+            pending_file = f"{database_path}/{team}/pending_results.csv"
+        else:
+            pending_file = f"{database_path}/pending_results.csv"
+        
+        # Check if pending results file exists
+        if not os.path.exists(pending_file):
+            return {'success': False, 'error': 'No pending results file found'}
+        
+        # Read the pending results file
+        df = pd.read_csv(pending_file)
+        
+        if df.empty:
+            return {'success': False, 'error': 'No pending results to delete'}
+        
+        # Validate index
+        if index < 0 or index >= len(df):
+            return {'success': False, 'error': f'Invalid index {index}. Valid range: 0-{len(df)-1}'}
+        
+        # Get the result being deleted for logging
+        deleted_result = df.iloc[index]
+        deleted_info = {
+            'player1': deleted_result['player1'],
+            'player2': deleted_result['player2'],
+            'result': deleted_result['result'],
+            'game': deleted_result['game'],
+            'timestamp': deleted_result['timestamp']
+        }
+        
+        # Remove the result at the specified index
+        df = df.drop(df.index[index])
+        
+        # Save the updated file
+        if df.empty:
+            # Remove the file if no results remain
+            os.remove(pending_file)
+            print(f"✅ Deleted last pending result, removed file: {pending_file}")
+        else:
+            # Save the remaining results
+            df.to_csv(pending_file, index=False)
+            print(f"✅ Deleted pending result at index {index}, {len(df)} results remaining")
+        
+        return {
+            'success': True,
+            'message': f'Deleted pending result: {deleted_info["player1"]} vs {deleted_info["player2"]} ({deleted_info["result"]})',
+            'deleted_result': deleted_info,
+            'remaining_count': len(df)
+        }
+        
+    except Exception as e:
+        return {'success': False, 'error': f'Failed to delete pending result: {e}'}
+
+def clear_all_pending_results(team=None):
+    """
+    Clear all pending results by removing the pending_results.csv file.
+    
+    Args:
+        team (str): Optional team name. If None, uses main database.
+    
+    Returns:
+        dict: Result summary with success/error info
+    """
+    try:
+        # Determine the correct path based on where we're running from
+        database_path = "database" if os.path.exists("database") else "../database"
+        
+        # Determine pending results file path
+        if team:
+            pending_file = f"{database_path}/{team}/pending_results.csv"
+        else:
+            pending_file = f"{database_path}/pending_results.csv"
+        
+        # Check if pending results file exists
+        if not os.path.exists(pending_file):
+            return {'success': True, 'message': 'No pending results file to clear', 'deleted_count': 0}
+        
+        # Read the file to get count before deletion
+        try:
+            df = pd.read_csv(pending_file)
+            deleted_count = len(df)
+        except Exception:
+            deleted_count = 0
+        
+        # Remove the file
+        os.remove(pending_file)
+        print(f"✅ Cleared all pending results: {deleted_count} results deleted")
+        
+        return {
+            'success': True,
+            'message': f'Cleared all pending results ({deleted_count} results deleted)',
+            'deleted_count': deleted_count
+        }
+        
+    except Exception as e:
+        return {'success': False, 'error': f'Failed to clear pending results: {e}'}
+
+def add_admin_note_to_pending(index, note, team=None):
+    """
+    Add an admin note to a specific pending result by index.
+    
+    Args:
+        index (int): Index of the result to add note to (0-based)
+        note (str): The note to add for the admin
+        team (str): Optional team name. If None, uses main database.
+    
+    Returns:
+        dict: Result summary with success/error info
+    """
+    try:
+        # Determine the correct path based on where we're running from
+        database_path = "database" if os.path.exists("database") else "../database"
+        
+        # Determine pending results file path
+        if team:
+            pending_file = f"{database_path}/{team}/pending_results.csv"
+        else:
+            pending_file = f"{database_path}/pending_results.csv"
+        
+        # Check if pending results file exists
+        if not os.path.exists(pending_file):
+            return {'success': False, 'error': 'No pending results file found'}
+        
+        # Read the pending results file
+        df = pd.read_csv(pending_file)
+        
+        if df.empty:
+            return {'success': False, 'error': 'No pending results found'}
+        
+        # Validate index
+        if index < 0 or index >= len(df):
+            return {'success': False, 'error': f'Invalid index {index}. Valid range: 0-{len(df)-1}'}
+        
+        # Add the note to the specified result
+        current_note = df.loc[index, 'notes_to_admin'] if 'notes_to_admin' in df.columns else ''
+        if pd.isna(current_note) or current_note == '':
+            df.loc[index, 'notes_to_admin'] = note.strip()
+        else:
+            # Append to existing note
+            df.loc[index, 'notes_to_admin'] = f"{current_note}; {note.strip()}"
+        
+        # Save the updated file
+        df.to_csv(pending_file, index=False)
+        
+        # Get result info for logging
+        result_info = {
+            'player1': df.iloc[index]['player1'],
+            'player2': df.iloc[index]['player2'],
+            'result': df.iloc[index]['result'],
+            'game': df.iloc[index]['game'],
+            'timestamp': df.iloc[index]['timestamp']
+        }
+        
+        print(f"✅ Added admin note to pending result at index {index}: {note}")
+        
+        return {
+            'success': True,
+            'message': f'Admin note added to pending result: {result_info["player1"]} vs {result_info["player2"]} ({result_info["result"]})',
+            'result_info': result_info,
+            'note': note
+        }
+        
+    except Exception as e:
+        return {'success': False, 'error': f'Failed to add admin note: {e}'}
+
+def format_comment_for_storage(comment, commenter_name):
+    """
+    Format a comment in the same way as add_comment_to_result() does.
+    Returns a string representation of a list containing the formatted comment.
+    """
+    if not comment or not commenter_name:
+        return ''
+    
+    new_comment = f'"{comment}" - {commenter_name}'
+    comments_list = [new_comment]
+    return str(comments_list)
 
 def delete_player(player_name, game='chess', team=None):
     """
@@ -486,8 +915,6 @@ def undo_last_result(team=None):
                 print(f"Error deleting last entry for player '{player}': {e}")
                 return {'error': f'Failed to delete entry for player {player}: {e}'}
         
-        # Generate updated charts
-        generate_charts_backend(game, team)
         
         return {
             'success': True,
@@ -506,7 +933,7 @@ def undo_last_result(team=None):
     except Exception as e:
         return {'error': f'Failed to undo last result: {e}'}
 
-def submit_game_with_charts(player1, player2, result, game, team=None, timestamp=None):
+def submit_game_with_charts(player1, player2, result, game, team=None, timestamp=None, comment=None):
     """
     Submit a game result and automatically regenerate charts, exactly like the Flask API does.
     
@@ -542,7 +969,7 @@ def submit_game_with_charts(player1, player2, result, game, team=None, timestamp
         
         # Read current ratings
         ratings1, ratings2 = read_ratings(player1, player2, game, team=team)
-        rating1, rating2 = ratings1[-1], ratings2[-1]
+        rating1, rating2 = float(ratings1[-1]), float(ratings2[-1])
         
         # Get adjusted K-factors for each player
         k_factor1 = get_adjusted_k_factor(player1, game, team)
@@ -580,10 +1007,104 @@ def submit_game_with_charts(player1, player2, result, game, team=None, timestamp
             timestamp=timestamp,
             player1_change=rating_change1,
             player2_change=rating_change2,
+            comment=comment,
         )
         
-        # Generate charts (leaderboard and rating progress)
-        generate_charts_backend(game, team)
+        
+        return {
+            'success': True,
+            'message': f'Result submitted: {player1} vs {player2} ({result})',
+            'game': game,
+            'player1': player1,
+            'player2': player2,
+            'result': result,
+            'new_rating1': int(new_rating1),
+            'new_rating2': int(new_rating2),
+            'probability': probability
+        }
+        
+    except Exception as e:
+        return {'error': str(e)}
+
+def submit_game_without_charts(player1, player2, result, game, team=None, timestamp=None, comment=None):
+    """
+    Submit a game result WITHOUT generating charts (for batch processing).
+    This is identical to submit_game_with_charts but skips the chart generation step.
+    
+    Args:
+        player1: First player name
+        player2: Second player name  
+        result: Result string ('1-0', '0-1', '1/2-1/2')
+        game: Game type ('chess', 'pingpong', 'backgammon')
+        team: Optional team name
+        timestamp: Optional timestamp string (YYYY-MM-DD HH:MM:SS)
+    
+    Returns:
+        dict: Result summary with success/error info
+    """
+    try:
+        # Validate inputs
+        if not player1 or not player2:
+            return {'error': 'Both players are required'}
+        
+        if player1 == player2:
+            return {'error': 'Players must be different'}
+        
+        if result not in ['1-0', '0-1', '1/2-1/2']:
+            return {'error': 'Invalid result format'}
+        
+        # Convert result to score
+        if result == '1-0':
+            score = 1.0
+        elif result == '0-1':
+            score = 0.0
+        else:  # 1/2-1/2
+            score = 0.5
+        
+        # Read current ratings
+        ratings1, ratings2 = read_ratings(player1, player2, game, team=team)
+        rating1, rating2 = float(ratings1[-1]), float(ratings2[-1])
+        
+        # Get adjusted K-factors for each player
+        k_factor1 = get_adjusted_k_factor(player1, game, team)
+        k_factor2 = get_adjusted_k_factor(player2, game, team)
+        
+        # Calculate expected scores using the shared ELO probability function
+        expected_score1 = calculate_elo_probability(rating1, rating2)
+        expected_score2 = calculate_elo_probability(rating2, rating1)
+        
+        # Calculate rating changes using individual K-factors
+        actual_score1 = score
+        actual_score2 = 1 - score
+        rating_change1 = (actual_score1 - expected_score1) * k_factor1
+        rating_change2 = (actual_score2 - expected_score2) * k_factor2
+        
+        # Store the probability for player1 (same as original function)
+        probability = expected_score1
+        
+        # Apply the changes
+        new_rating1 = rating1 + rating_change1
+        new_rating2 = rating2 + rating_change2
+        
+        # Write new ratings with timestamp
+        write_new_rating(player1, new_rating1, player2, score, game, colour='white', team=team, timestamp=timestamp)
+        write_new_rating(player2, new_rating2, player1, (1-score), game, colour='black', team=team, timestamp=timestamp)
+        
+        # Log result to recent results (persist per-game rating deltas)
+        log_result_to_team(
+            player1,
+            player2,
+            result,
+            game,
+            team,
+            probability,
+            timestamp=timestamp,
+            player1_change=rating_change1,
+            player2_change=rating_change2,
+            comment=comment,
+        )
+        
+        # NOTE: Charts are NOT generated here - they will be generated once at the end
         
         return {
             'success': True,
@@ -692,68 +1213,6 @@ def add_comment_to_result(timestamp=None, comment=None, commenter_name=None, tea
     except Exception as e:
         return {'error': f'Failed to add comment: {e}'}
 
-def generate_charts_backend(game, team=None):
-    """Generate leaderboard and ratings progress charts, exactly like the Flask API does"""
-    import subprocess
-    import sys
-    from pathlib import Path
-    
-    try:
-        # Determine database path (use the same logic as other functions)
-        if os.path.exists('database'):
-            db_path = "database"
-        else:
-            db_path = "../database"
-            
-        # Determine game directory
-        if team:
-            game_dir = f"{db_path}/{team}/{game}"
-        else:
-            game_dir = f"{db_path}/{game}"
-        
-        # Determine the correct working directory for running scripts
-        if os.path.exists('code'):
-            # Running from root directory (server context)
-            script_cwd = 'code'
-        else:
-            # Running from code directory (command line context)
-            script_cwd = '.'
-        
-        # Generate leaderboard
-        try:
-            if team:
-                subprocess.run([
-                    sys.executable, 'leaderboard.py', f"{team}/{game}"
-                ], check=True, capture_output=True, text=True, cwd=script_cwd)
-            else:
-                subprocess.run([
-                    sys.executable, 'leaderboard.py', game
-                ], check=True, capture_output=True, text=True, cwd=script_cwd)
-        except subprocess.CalledProcessError:
-            # Leaderboard might fail if no players exist, that's okay
-            pass
-        
-        # Generate ratings progress chart
-        try:
-            csv_files = list(Path(game_dir).glob('*.csv'))
-            if csv_files:
-                # Adjust CSV paths based on the working directory we'll be running from
-                if script_cwd == 'code':
-                    # Running from code directory, so paths need to go up one level
-                    csv_paths = [f"../{csv_file}" for csv_file in csv_files]
-                else:
-                    # Running from root directory
-                    csv_paths = [str(csv_file) for csv_file in csv_files]
-                    
-                subprocess.run([
-                    sys.executable, 'graph.py'
-                ] + csv_paths, check=True, capture_output=True, text=True, cwd=script_cwd)
-        except subprocess.CalledProcessError:
-            # Graph might fail if no actual games played, that's okay
-            pass
-            
-    except Exception as e:
-        print(f"Warning: Chart generation failed: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ELO rating system utilities')

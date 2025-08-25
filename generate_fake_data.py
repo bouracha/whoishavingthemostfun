@@ -272,16 +272,16 @@ def generate_charts_for_all_games():
         for game in GAMES:
             print(f"\n  📈 Generating charts for {game}...")
             
-            # Generate leaderboard
+            # Generate leaderboard JSON
             try:
                 subprocess.run([
-                    sys.executable, 'leaderboard.py', game
+                    sys.executable, 'leaderboard.py', game, '--json'
                 ], check=True, capture_output=True, text=True)
-                print(f"    ✅ Leaderboard generated")
+                print(f"    ✅ Leaderboard JSON generated")
             except subprocess.CalledProcessError as e:
                 print(f"    ❌ Leaderboard failed: {e.stderr}")
             
-            # Generate ratings progress chart
+            # Generate ratings progress JSON
             try:
                 # Find all CSV files for this game
                 import glob
@@ -290,8 +290,8 @@ def generate_charts_for_all_games():
                 if csv_files:
                     subprocess.run([
                         sys.executable, 'graph.py'
-                    ] + csv_files, check=True, capture_output=True, text=True)
-                    print(f"    ✅ Ratings progress generated")
+                    ] + csv_files + ['--json'], check=True, capture_output=True, text=True)
+                    print(f"    ✅ Ratings progress JSON generated")
                 else:
                     print(f"    ⚠️  No CSV files found for {game}")
                     

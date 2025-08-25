@@ -16,59 +16,124 @@ source venv/bin/activate
 pip install -r requirements.txt
 python server.py
 ```
+Server runs on http://localhost:8080
 
 ### Testing
 ```bash
 python test_simulated_data.py  # Compare test data with main database
 ```
 
-### Chart generation (manual)
+### Chart data generation (manual)
 ```bash
 cd code
-python leaderboard.py <game>           # Generate leaderboard chart
-python graph.py <player_csv_files>     # Generate ratings progress chart
+python leaderboard.py <game> --json    # Generate JSON data for interactive charts
+python graph.py <player_csv_files> --json  # Generate JSON data for ratings progress
 ```
 
-### Player management (backend only)
+### Player and game management
 ```bash
 cd code
 python manage_players.py list <game>
 echo "<player>" | python manage_players.py delete <game> <player>
+
+# Game result management
+python update.py --undo_last_result [--team <team>]  # Undo last game result
+python update.py --new_player <game> <player>        # Create new player
+python update.py --delete_player <game> <player>     # Delete player completely
 ```
 
 ## Architecture
 
 ### Core Components
-- **server.py**: Flask API server serving both static files and REST endpoints
-- **code/update.py**: ELO calculation engine and game result processing
-- **code/leaderboard.py**: Generates PNG leaderboard charts with player photos
-- **code/graph.py**: Creates ratings progress line charts
-- **code/config.py**: Game constants (K-factors: chess=40, pingpong=40, backgammon=10)
+- **server.py**: Flask API server (1400+ lines) - serves static files and comprehensive REST API
+- **code/update.py**: ELO calculation engine and game result processing (1200+ lines)
+  - Handles rating calculations with adjustable K-factors
+  - Manages pending results system for admin approval
+  - Contains undo functionality and audit logging
+- **code/leaderboard.py**: Generates JSON leaderboard data for interactive charts
+- **code/graph.py**: Creates JSON ratings progress data for interactive charts
+- **code/config.py**: Game constants and K-factor configuration
 
-### Data Storage
-- Player data: CSV files in `database/<game>/<player>.csv`
-- Each CSV contains: timestamp, opponent, result (1/0), rating_before, rating_after
-- Team configurations: `database/teams.json`
-- Generated charts: `web/<game>_leaderboard.png` and `web/<game>_ratings_progress.png`
+### Data Storage Structure
+- **Player data**: CSV files in `database/<game>/<player>.csv`
+  - Format: rating, opponent, result, colour, timestamp
+- **Results history**: `database/results.csv` with full game history and commentary
+- **Pending results**: `database/pending_results.csv` for admin approval workflow
+- **Team support**: `database/<team>/` directories for multi-tenant setup
+- **Team configs**: `database/teams.json` with hashed passwords
+- **Chart data**: `web/<game>_leaderboard.json` and `web/<game>_ratings_progress.json` (generated on-demand)
 
 ### Frontend Structure
-- Static files in `web/` directory
-- Game-specific pages: `chess.html`, `pingpong.html`, `backgammon.html`  
-- Player images: `web/images/players/<player>.png` (fallback to `default.png`)
-- Medal icons: `web/images/medals/1st.png`, `2nd.png`, `3rd.png`
+- **Static files**: `web/` directory with vanilla HTML/JS/CSS
+- **Common pages**: `index.html`, `game.html` (shared template)
+- **Team pages**: `/t/<team>/<game>` routes for multi-tenant access
+- **Assets**: Player images in `web/images/players/`, medal icons in `web/images/medals/`
 
 ## Key API Endpoints
 
+### Main Database APIs
 - `GET /api/health` - Health check
+- `GET /api/players/<game>` - List players for a game
 - `POST /api/players/<game>` - Add new player (body: `{"player_name": "name"}`)
-- `GET /api/probability-matrix/<game>` - Get head-to-head win probabilities matrix
-- `GET /api/<team>/probability-matrix/<game>` - Team-specific probability matrix
-- Game submission handled via `submit_game_with_charts()` function
+- `DELETE /api/players/<game>/<player>` - Remove player
+- `POST /api/results/<game>` - Submit game result (creates pending result)
+- `GET /api/recent-results` - Get recent game results with pagination
+- `GET /api/probability-matrix/<game>` - Head-to-head win probability matrix
+- `POST /api/undo-last-result` - Undo the most recent game result
 
-## Important Notes
+### Team-Specific APIs
+- `POST /api/auth/login` - Team authentication
+- `POST /api/auth/logout` - Logout from team
+- `GET/POST /api/<team>/players/<game>` - Team player management
+- `POST /api/<team>/results/<game>` - Submit team game result
+- `GET /api/<team>/recent-results` - Team recent results
+- `GET /api/<team>/probability-matrix/<game>` - Team probability matrix
 
-- Charts are regenerated automatically after game submissions
-- Player photos must be placed in `web/images/players/` manually
-- The system supports multiple teams via `database/teams.json`
-- All game logic uses ELO rating calculations from `code/update.py`
-- Production deployment uses Nginx reverse proxy (see SERVER_README.md)
+### Admin APIs (Pending Results System)
+- `GET /api/pending-results` - View pending results awaiting approval
+- `POST /api/approve-all-pending` - Approve all pending results
+- `DELETE /api/pending-results/<index>` - Delete specific pending result
+- `DELETE /api/pending-results` - Clear all pending results
+- `POST /api/pending-results/<index>/admin-note` - Add admin note to pending result
+
+### Chart APIs
+- `GET /api/charts/<game>/leaderboard` - JSON leaderboard data
+- `GET /api/charts/<game>/ratings-progress` - JSON ratings progress data
+- `POST /api/charts/<game>/generate` - Regenerate charts manually
+
+## Important Development Notes
+
+### Game Logic & Rating System
+- Uses standard ELO rating calculations with adjustable K-factors per game
+- K-factors: chess=40, pingpong=40, backgammon=10 (configured in `code/config.py`)
+- Players with 20+ games get reduced K-factor (max 20) for rating stability
+- Supports draws (result='1/2-1/2') in addition to wins/losses
+
+### Pending Results System
+- All game submissions go to pending queue first (`pending_results.csv`)
+- Admin must approve results before they affect ratings and charts
+- Includes commentary generation and comment system for each result
+- Undo functionality removes from both `results.csv` and player CSV files
+
+### Multi-tenant Architecture
+- Teams isolated via `database/<team>/` directories
+- Team authentication using hashed passwords in `database/teams.json`
+- Each team has separate player pools, results, and charts
+- URLs: `/t/<team>/<game>` for team-specific pages
+
+### Chart Generation
+- **Dynamic generation only** - JSON data generated on-demand via API endpoints
+- **Interactive charts** rendered client-side using Plotly.js
+- **No file storage** - chart data served directly from memory
+- **Real-time updates** - charts update instantly when data changes
+
+### File Paths & Context Awareness
+- Scripts detect running context: root directory (server) vs `code/` directory (CLI)
+- Database paths adjust automatically: `database/` or `../database/`
+- Player images fallback to `web/images/players/default.png` if specific image missing
+- Chart scripts support `--stdout` flag for in-memory server integration
+
+### Production Deployment
+- Uses Nginx reverse proxy (see SERVER_README.md)
+- Supports HTTPS via Let's Encrypt certificates
+- Flask serves on localhost:8080, Nginx forwards from 80/443

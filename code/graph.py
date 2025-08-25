@@ -1,31 +1,10 @@
 import pandas as pd
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend to reduce memory usage
-import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import datetime
 import os
+import json
 from collections import defaultdict
-
-# Set up matplotlib for better looking plots
-try:
-    plt.style.use('seaborn-v0_8')
-except:
-    plt.style.use('default')  # Fallback for older matplotlib versions
-plt.rcParams['figure.figsize'] = (12, 8)
-plt.rcParams['font.size'] = 12
-plt.rcParams['axes.grid'] = True
-plt.rcParams['grid.alpha'] = 0.3
-plt.rcParams['figure.dpi'] = 150  # Balanced DPI for good quality and reasonable file size
-plt.rcParams['font.family'] = 'DejaVu Sans'
-plt.rcParams['font.sans-serif'] = [
-    'DejaVu Sans',
-    'Arial Unicode MS',
-    'Symbola',
-    'FreeSerif',
-    'Noto Sans Symbols'
-]
 
 def get_middle_rating(times, ratings):
     """Get the rating at the middle of the time series"""
@@ -48,348 +27,264 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating):
     bucket_ranges = []
     bucket_centers = []
     
-    # Initialize the last known rating as the starting rating
-    last_known_rating = starting_rating
-    
     for i in range(len(bucket_boundaries) - 1):
-        bucket_start = bucket_boundaries[i]
-        bucket_end = bucket_boundaries[i + 1]
-        bucket_center = bucket_start + (bucket_end - bucket_start) / 2
+        start_time = bucket_boundaries[i]
+        end_time = bucket_boundaries[i + 1]
+        bucket_center = start_time + (end_time - start_time) / 2
         
-        # Find all ratings in this bucket
+        # Collect ratings in this time bucket
         bucket_ratings = []
-        for j, t in enumerate(times):
-            if bucket_start <= t < bucket_end:
-                bucket_ratings.append(ratings[j])
-                last_known_rating = ratings[j]  # Update last known rating
+        for t, r in zip(times, ratings):
+            if start_time <= t < end_time:
+                bucket_ratings.append(r)
         
-        # If we have data in this bucket, use it
         if bucket_ratings:
-            bucket_means.append(np.mean(bucket_ratings))
-            # Calculate range (max - min) instead of standard deviation
-            bucket_ranges.append(np.max(bucket_ratings) - np.min(bucket_ratings) if len(bucket_ratings) > 1 else 0)
-            bucket_centers.append(bucket_center)
-        # Otherwise, use the last known rating (forward fill)
+            mean_rating = np.mean(bucket_ratings)
+            rating_range = np.max(bucket_ratings) - np.min(bucket_ratings)
         else:
-            # Only add a point if we've seen at least one game
-            if last_known_rating is not None and times[0] <= bucket_end:
-                bucket_means.append(last_known_rating)
-                bucket_ranges.append(0)  # No range if no games in bucket
-                bucket_centers.append(bucket_center)
+            # Use previous bucket's mean or starting rating
+            if bucket_means:
+                mean_rating = bucket_means[-1]
+            else:
+                mean_rating = starting_rating
+            rating_range = 0
+        
+        bucket_centers.append(bucket_center)
+        bucket_means.append(mean_rating)
+        bucket_ranges.append(rating_range)
     
     return bucket_centers, bucket_means, bucket_ranges
 
-
-
-name = sys.argv[0]
-
-
-
-def plot_rating(path_to_file, label):
-  data = pd.read_csv(path_to_file)
-
-  rating = np.array(data['rating'])
-  timestamp = np.array(data['timestamp'])
-  print(label, rating[-1])
-
-  time_list = []
-  valid_ratings = []
-  starting_rating = None
-  
-  for i, ts in enumerate(timestamp):
-    if ts == "beginning of time":
-      # Store the starting rating but don't add to timeline yet
-      starting_rating = rating[i]
-      continue
-    else:
-      try:
-        date = datetime.datetime.strptime(ts[:-7], "%Y-%m-%d %H:%M:%S")
-        # Store the full datetime object for flexible scaling
-        time_list.append(date)
-        valid_ratings.append(rating[i])
-      except ValueError:
-        # Skip invalid timestamps
-        continue
-
-  if time_list:  # Only plot if we have valid data
-    return time_list, valid_ratings, label[:-4], starting_rating
-  else:
-    return [], [], label[:-4], starting_rating
-
-
-# Collect all data first
-all_times = []
-all_ratings = []
-all_labels = []
-player_data = {}  # Store each player's data separately
-
-print("Number of datasets: ", len(sys.argv)-1)
-for i in range(1, len(sys.argv)):
-  dataset = sys.argv[i]
-  times, ratings, label, starting_rating = plot_rating(dataset, dataset)
-  all_times.extend(times)
-  all_ratings.extend(ratings)
-  all_labels.extend([label] * len(times))
-  player_data[label] = (times, ratings, starting_rating)
-
-# Determine game and optional team from the first argument
-first_arg = sys.argv[1]
-team_name = None
-if '/database/' in first_arg:
-    parts = first_arg.split('/database/')[1].split('/')
-    if len(parts) >= 2 and parts[0] not in ['chess', 'pingpong', 'backgammon']:
-        # Expect path like team/game/player.csv
-        team_name = parts[0]
-        game_type = parts[1].title()
-    else:
-        game_type = parts[0].title()
-elif 'database' in first_arg:
-    path_parts = first_arg.split('/')
-    if len(path_parts) >= 3 and path_parts[1] not in ['chess', 'pingpong', 'backgammon']:
-        team_name = path_parts[1]
-        game_type = path_parts[2].title()
-    elif len(path_parts) >= 2:
-        game_type = path_parts[1].title()
-    else:
-        game_type = "Unknown"
-else:
-    # Fallback
-    game_type = first_arg.split('/')[0].title()
-
-
-
-# Plot all data
-if all_times:
-    # Convert to matplotlib dates
-    import matplotlib.dates as mdates
+def plot_rating(filepath, label):
+    """Load and return rating data from a CSV file"""
+    try:
+        data = pd.read_csv(filepath)
+        
+        # Skip initial entry and entries without opponents
+        mask = (data['opponent'] != 'no opponent') & (data['opponent'].notna())
+        game_data = data[mask]
+        
+        if game_data.empty:
+            return [], [], label, 1200
+        
+        times = []
+        ratings = game_data['rating'].values
+        
+        # Convert timestamp strings to datetime objects
+        for timestamp_str in game_data['timestamp']:
+            if timestamp_str == 'beginning of time':
+                continue
+            try:
+                # Try different timestamp formats
+                if '.' in timestamp_str:
+                    # Format with microseconds: 2023-12-07 14:30:25.123456
+                    dt = datetime.datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S.%f')
+                else:
+                    # Format without microseconds: 2023-12-07 14:30:25
+                    dt = datetime.datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                times.append(dt)
+            except ValueError as e:
+                print(f"Warning: Could not parse timestamp '{timestamp_str}': {e}")
+                continue
+        
+        # Ensure times and ratings have same length
+        min_length = min(len(times), len(ratings))
+        times = times[:min_length]
+        ratings = ratings[:min_length]
+        
+        # Get starting rating (from first row, before games)
+        starting_rating = data['rating'].iloc[0] if not data.empty else 1200
+        
+        return times, ratings, label, starting_rating
     
-    # Find the very first game time across all players
+    except Exception as e:
+        print(f"Error processing {filepath}: {e}")
+        return [], [], label, 1200
+
+def create_ratings_progress_json(csv_files):
+    """Create ratings progress data in JSON format for Plotly.js"""
+    
+    # Collect all data first
+    all_times = []
+    all_ratings = []
+    player_data = {}
+    
+    # Process each CSV file
+    for csv_file in csv_files:
+        times, ratings, player_name, starting_rating = plot_rating(csv_file, csv_file)
+        if times:  # Only include players with game data
+            all_times.extend(times)
+            all_ratings.extend(ratings)
+            player_data[player_name] = (times, ratings, starting_rating)
+    
+    if not all_times:
+        return {"error": "No valid game data found"}
+    
+    # Determine game and team info from first CSV file
+    first_arg = csv_files[0]
+    team_name = None
+    if '/database/' in first_arg:
+        parts = first_arg.split('/database/')[1].split('/')
+        if len(parts) >= 2 and parts[0] not in ['chess', 'pingpong', 'backgammon']:
+            team_name = parts[0]
+            game_type = parts[1].title()
+        else:
+            game_type = parts[0].title()
+    elif 'database' in first_arg:
+        path_parts = first_arg.split('/')
+        if len(path_parts) >= 3 and path_parts[1] not in ['chess', 'pingpong', 'backgammon']:
+            team_name = path_parts[1]
+            game_type = path_parts[2].title()
+        elif len(path_parts) >= 2:
+            game_type = path_parts[1].title()
+        else:
+            game_type = "Unknown"
+    else:
+        game_type = first_arg.split('/')[0].title()
+    
+    # Calculate time boundaries and total games
     first_game_time = min(all_times)
     last_game_time = max(all_times)
+    total_games = len(all_times) // 2  # Each game involves 2 players
     
-    # Calculate the center of the time axis
-    time_center = first_game_time + (last_game_time - first_game_time) / 2
-    
-    # Determine time scale automatically
-    time_span = last_game_time - first_game_time
-    
-    # Count total games across all players
-    total_games = 0
-    for player, (times, ratings, starting_rating) in player_data.items():
-        # The times list already excludes "beginning of time", so count all timestamps
-        total_games += len(times)
-    
-    # Since each game involves 2 players, divide by 2 to get actual number of games
-    total_games = total_games // 2
-    
-    # Create time buckets (approximately 20 buckets, but ensure at least 5)
+    # Create time buckets for smoothing
     num_buckets = min(20, max(5, total_games // 3))
-    
-    # Create bucket boundaries
     time_delta = (last_game_time - first_game_time) / num_buckets
     bucket_boundaries = []
     for i in range(num_buckets + 1):
         bucket_boundaries.append(first_game_time + i * time_delta)
     
-    plt.xlabel("Date")
-    plt.title(f"{game_type} ({total_games} total games)")
-    
-    # Smart x-axis formatting based on time span
-    ax = plt.gca()
-    if time_span.days <= 7:
-        # Less than a week: show day and time
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d\n%H:%M'))
-        ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
-    elif time_span.days <= 30:
-        # Less than a month: show day and month
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, time_span.days // 10)))
-    elif time_span.days <= 365:
-        # Less than a year: show month and day
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-        ax.xaxis.set_major_locator(mdates.MonthLocator())
-        ax.xaxis.set_minor_locator(mdates.DayLocator(bymonthday=[1, 15]))
-    else:
-        # More than a year: show year and month
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=max(1, time_span.days // 365)))
-    
-    # Rotate x-axis labels for better readability
-    plt.xticks(rotation=45, ha='right')
-    
-    # Define a nice color palette
+    # Define colors for chart visualization
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
     
-    # Plot each player's data, starting from the first game time
-    last_game_time = max(all_times)
-    
-    # Get all player names from command line arguments
-    all_requested_players = []
-    for arg in sys.argv[1:]:
-        player_name = arg.split('/')[-1].replace('.csv', '')
-        all_requested_players.append(player_name)
-    
-    # Count total players for name positioning
-    total_players = len(player_data) + sum(1 for player in all_requested_players 
-                                         if player not in player_data or not player_data[player][0])
-    
-    # Setting for whether to show range (can be adjusted)
-    show_range = True  # Set to False to disable error bars
-    
-    # Plot active players first
+    # Process each player's data
+    players_series = []
     player_index = 0
-    for i, (label, (times, ratings, starting_rating)) in enumerate(player_data.items()):
+    
+    for label, (times, ratings, starting_rating) in player_data.items():
         if times:  # Player has games
-            color = colors[i % len(colors)]
-            
             # Bucket the player's data
             bucket_centers, bucket_means, bucket_ranges = bucket_player_data(
                 times, ratings, bucket_boundaries, starting_rating
             )
             
-            if bucket_centers:  # Only plot if we have bucketed data
-                # Check if this player has been inactive (no recent games)
+            if bucket_centers:
+                color = colors[player_index % len(colors)]
+                
+                # Format player name
+                player_name = label.split('/')[-1] if '/' in label else label
+                display_name = player_name.replace('_', ' ').title()
+                display_name = display_name.replace(' Q', ' (-♛)')
+                
+                # Check if player is inactive
                 is_inactive = times[-1] != last_game_time
                 
-                # Convert bucket centers to matplotlib dates
-                mpl_times = [mdates.date2num(t) for t in bucket_centers]
+                # Convert times to ISO strings for JSON serialization
+                x_data = [t.isoformat() for t in bucket_centers]
+                y_data = [float(rating) for rating in bucket_means]
+                range_data = [float(r) for r in bucket_ranges]
                 
-                # Get the exact current rating and time
-                current_rating = ratings[-1]  # Last actual rating
-                current_time = mdates.date2num(last_game_time)  # Use global last game time
+                # Get current rating (last rating)
+                current_rating = float(ratings[-1]) if len(ratings) > 0 else float(starting_rating)
                 
-                # Extract just the player name from the label (remove path) and format properly
-                player_name = label.split('/')[-1] if '/' in label else label
-                player_name = player_name.replace('_', ' ').title()
-                # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
-                player_name = player_name.replace(' Q', ' (-♛)')
+                players_series.append({
+                    'name': display_name,
+                    'player': player_name,
+                    'x': x_data,
+                    'y': y_data,
+                    'ranges': range_data,
+                    'color': color,
+                    'current_rating': current_rating,
+                    'starting_rating': float(starting_rating),
+                    'games_played': len(times),
+                    'is_inactive': is_inactive
+                })
                 
-                # Plot the line first (make inactive players more transparent)
-                alpha = 0.7 if is_inactive else 1.0
-                plt.plot(mpl_times, bucket_means, '-', color=color, linewidth=2.5, alpha=alpha)
-                
-                # Plot error bars for range if enabled and we have variance
-                if show_range and any(rng > 0 for rng in bucket_ranges):
-                    # Only show error bars where range > 0
-                    error_times = []
-                    error_means = []
-                    error_ranges = []
-                    for j, rng in enumerate(bucket_ranges):
-                        if rng > 0:
-                            error_times.append(mpl_times[j])
-                            error_means.append(bucket_means[j])
-                            error_ranges.append(rng)
-                    
-                    if error_times:
-                        plt.errorbar(error_times, error_means, yerr=error_ranges, 
-                                   fmt='none', color=color, alpha=alpha * 0.3, 
-                                   capsize=3, capthick=1)
-                
-                # Plot dots at bucket centers (smaller for historical points)
-                plt.plot(mpl_times, bucket_means, 'o', color=color, markersize=5, 
-                        markerfacecolor=color, markeredgecolor='white', 
-                        markeredgewidth=1.5, alpha=alpha)
-                
-                # Add exact current rating point (larger marker to emphasize)
-                plt.plot(current_time, current_rating, 'o', color=color, markersize=8, 
-                        markerfacecolor=color, markeredgecolor='white', 
-                        markeredgewidth=2, alpha=alpha, zorder=10)
-                
-                # Connect last bucket to current rating if they're different
-                if mpl_times and abs(mpl_times[-1] - current_time) > 0.1:  # Different times
-                    plt.plot([mpl_times[-1], current_time], [bucket_means[-1], current_rating], 
-                            '-', color=color, linewidth=2.5, alpha=alpha)
-                
-                # Add player name at the middle of their line
-                if len(mpl_times) > 0:
-                    middle_x, middle_y = get_middle_rating(mpl_times, bucket_means)
-                    if middle_x is not None:
-                        # Place text above the line
-                        plt.annotate(player_name, xy=(middle_x, middle_y), xytext=(5, 15), 
-                                    textcoords='offset points', fontsize=20, fontweight='bold',
-                                    color=color, alpha=alpha, ha='left', va='bottom')
-    
-    # Plot inactive players (only those who have no games at all)
-    inactive_count = 0
-    for player in all_requested_players:
-        # Check if this player has any games by looking for their data in player_data
-        player_has_games = False
-        for label in player_data.keys():
-            if player in label:  # Check if player name is in the label
-                player_has_games = True
-                break
-        
-        if not player_has_games:  # Only plot if player has no games
-            # Get their last rating from the CSV file
-            try:
-                # Determine base database directory depending on runtime
-                base_db = 'database' if os.path.exists('database') else '../database'
-                # Use detected game and optional team
-                if team_name:
-                    player_csv = f"{base_db}/{team_name}/{game_type.lower()}/{player}.csv"
-                else:
-                    player_csv = f"{base_db}/{game_type.lower()}/{player}.csv"
-                data = pd.read_csv(player_csv)
-                last_rating = data['rating'].iloc[-1]  # Get the last rating entry
-            except:
-                last_rating = 1200.0  # Default if file doesn't exist or is empty
-            
-            # Create flat line from first game time to last game time at their last rating
-            times_flat = [first_game_time, last_game_time]
-            ratings_flat = [last_rating, last_rating]
-            
-            # Convert to matplotlib dates
-            mpl_times = [mdates.date2num(t) for t in times_flat]
-            color = colors[(len(player_data) + inactive_count) % len(colors)]
-            
-            # Plot the dashed line first
-            plt.plot(mpl_times, ratings_flat, '--', color=color, linewidth=2, alpha=0.7)
-            
-            # Plot dots at start and end points
-            plt.plot(mpl_times, ratings_flat, 'o', color=color, markersize=6, markerfacecolor=color, markeredgecolor='white', markeredgewidth=1.5, alpha=0.7)
-            
-            # Add player name at a smart position along the line
-            if len(mpl_times) > 0:
-                # Place text roughly at the center
-                mid_index = len(mpl_times)//2
-                best_x, best_y = mpl_times[mid_index], ratings_flat[mid_index]
-                display_name = player.replace('_', ' ').title()
-                # Replace any " Q" with " (-♛)" (space + Q becomes space + brackets + queen)
-                display_name = display_name.replace(' Q', ' (-♛)')
-                plt.annotate(display_name, xy=(best_x, best_y), xytext=(5, 15), 
-                           textcoords='offset points', fontsize=20, fontweight='bold',
-                           color=color, alpha=0.7, ha='left', va='bottom')
                 player_index += 1
-            inactive_count += 1
+    
+    return {
+        'title': f'{game_type} Ratings Progress',
+        'game': game_type.lower(),
+        'team': team_name,
+        'players': players_series,
+        'total_players': len(players_series),
+        'total_games': total_games,
+        'time_range': {
+            'start': first_game_time.isoformat(),
+            'end': last_game_time.isoformat()
+        }
+    }
 
-plt.ylabel("Rating", fontsize=14, fontweight='bold')
-# Get the current xlabel text and apply styling
-current_xlabel = plt.gca().get_xlabel()
-plt.xlabel(current_xlabel, fontsize=14, fontweight='bold')
-# Get the current title text and apply styling
-current_title = plt.gca().get_title()
-plt.title(current_title, fontsize=16, fontweight='bold', pad=20)
-
-# No legend needed since names are on the lines
-
-# Add some padding and improve layout
-plt.tight_layout()
-
-# Save with high quality in web folder with game name, optionally under team directory
-# Determine the correct output path based on where we're running from
-game_file = f'{game_type.lower()}_ratings_progress.png'
-if os.path.exists('web'):
-    if team_name:
-        os.makedirs(f'web/{team_name}', exist_ok=True)
-        output_file = f'web/{team_name}/{game_file}'
+if __name__ == "__main__":
+    # Check for JSON and stdout modes
+    json_mode = '--json' in sys.argv
+    stdout_mode = '--stdout' in sys.argv
+    
+    # Remove flags from arguments for processing
+    csv_files = [arg for arg in sys.argv[1:] if arg not in ['--json', '--stdout']]
+    
+    if not csv_files:
+        print("Usage: python3 graph.py <player1.csv> [player2.csv] ... [--json] [--stdout]")
+        print("Example: python3 graph.py ../database/chess/magnus_carlsen.csv ../database/chess/bobby_fischer.csv --json")
+        print("Example: python3 graph.py ../database/chess/magnus_carlsen.csv --json --stdout")
+        sys.exit(1)
+    
+    # Generate JSON data
+    data = create_ratings_progress_json(csv_files)
+    
+    if stdout_mode:
+        # Output JSON to stdout for programmatic use
+        print(json.dumps(data, indent=2))
     else:
-        output_file = f'web/{game_file}'
-else:
-    if team_name:
-        os.makedirs(f'../web/{team_name}', exist_ok=True)
-        output_file = f'../web/{team_name}/{game_file}'
-    else:
-        output_file = f'../web/{game_file}'
-
-    plt.savefig(output_file, dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
-plt.close()  # Close the figure to free memory
+        # File output (existing behavior)
+        # Determine game type from first CSV for file naming
+        first_csv = csv_files[0]
+        if 'chess' in first_csv:
+            game_type = 'chess'
+        elif 'pingpong' in first_csv:
+            game_type = 'pingpong'
+        elif 'backgammon' in first_csv:
+            game_type = 'backgammon'
+        else:
+            game_type = 'game'
+        
+        # Determine output path and team info
+        team_info = None
+        if '/database/' in first_csv:
+            parts = first_csv.split('/database/')[1].split('/')
+            if len(parts) >= 2 and parts[0] not in ['chess', 'pingpong', 'backgammon']:
+                team_info = parts[0]
+        elif 'database' in first_csv:
+            path_parts = first_csv.split('/')
+            if len(path_parts) >= 3 and path_parts[1] not in ['chess', 'pingpong', 'backgammon']:
+                team_info = path_parts[1]
+        
+        # Generate output filename
+        if team_info:
+            if os.path.exists('web'):
+                os.makedirs(f'web/{team_info}', exist_ok=True)
+                output_file = f'web/{team_info}/{game_type}_ratings_progress.json'
+            else:
+                os.makedirs(f'../web/{team_info}', exist_ok=True)
+                output_file = f'../web/{team_info}/{game_type}_ratings_progress.json'
+        else:
+            if os.path.exists('web'):
+                output_file = f'web/{game_type}_ratings_progress.json'
+            else:
+                output_file = f'../web/{game_type}_ratings_progress.json'
+        
+        # Write JSON output
+        with open(output_file, 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        print(f"Ratings progress JSON saved as {output_file}", file=sys.stderr)
+        
+        # Print summary
+        if "error" not in data:
+            print(f"\n{data['title']}:", file=sys.stderr)
+            print("=" * 40, file=sys.stderr)
+            for player_data in data['players']:
+                name = player_data['name']
+                current_rating = int(player_data['current_rating'])
+                games_played = player_data['games_played']
+                print(f"{name:<20} {current_rating:>4d} ({games_played} games)", file=sys.stderr)

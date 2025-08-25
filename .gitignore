@@ -1,13 +1,7 @@
-# Generated images (created by code)
+# Generated images (static assets only, dynamic charts no longer stored as files)
 web/*.png
 web/*.jpg
 web/*.jpeg
-web/*_leaderboard.png
-web/*_ratings_progress.png
-web/**/*_leaderboard.png
-web/**/*_ratings_progress.png
-database/*_leaderboard.png
-database/*_ratings_progress.png
 
 # Game data (live data stays on EC2 only)
 database/*/

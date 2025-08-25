@@ -32,31 +32,8 @@ function getContext() {
     return { isLocal, team, game: currentGame };
 }
 
-// Show leaderboard
-function showLeaderboard() {
-    const { isLocal, team } = getContext();
-    const baseSrc = team ? `/api/${team}/charts/${currentGame}/leaderboard.png` : `${currentGame}_leaderboard.png`;
-    
-    document.getElementById('displayImage').src = baseSrc;
-    document.getElementById('displayImage').alt = `${currentGame} Leaderboard`;
-    
-    // Update button states
-    document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('[onclick="showLeaderboard()"]').classList.add('active');
-}
-
-// Show ratings progress
-function showRatingsProgress() {
-    const { isLocal, team } = getContext();
-    const baseSrc = team ? `/api/${team}/charts/${currentGame}/ratings_progress.png` : `${currentGame}_ratings_progress.png`;
-    
-    document.getElementById('displayImage').src = baseSrc;
-    document.getElementById('displayImage').alt = `${currentGame} Ratings Progress`;
-    
-    // Update button states
-    document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('[onclick="showRatingsProgress()"]').classList.add('active');
-}
+// Chart functions are defined in the individual game HTML files
+// This allows each page to have its own implementation (dynamic Plotly.js charts)
 
 // Modal functions
 function openAddPlayerModal() {

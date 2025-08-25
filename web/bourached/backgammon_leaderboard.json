@@ -1,0 +1,89 @@
+{
+  "title": "Backgammon Leaderboard",
+  "game": "backgammon",
+  "team": "bourached",
+  "players": [
+    {
+      "position": 1,
+      "player": "anthony",
+      "display_name": "Anthony",
+      "rating": 1217,
+      "has_played": true,
+      "status": "gold",
+      "color": "#FFD700"
+    },
+    {
+      "position": 2,
+      "player": "anna",
+      "display_name": "Anna",
+      "rating": 1195,
+      "has_played": true,
+      "status": "silver",
+      "color": "#C0C0C0"
+    },
+    {
+      "position": 3,
+      "player": "eid",
+      "display_name": "Eid",
+      "rating": 1187,
+      "has_played": true,
+      "status": "bronze",
+      "color": "#CD7F32"
+    },
+    {
+      "position": 4,
+      "player": "xzvz",
+      "display_name": "Xzvz",
+      "rating": 1200,
+      "has_played": false,
+      "status": "new",
+      "color": "#90EE90"
+    },
+    {
+      "position": 5,
+      "player": "d",
+      "display_name": "D",
+      "rating": 1200,
+      "has_played": false,
+      "status": "new",
+      "color": "#90EE90"
+    },
+    {
+      "position": 6,
+      "player": "scdc",
+      "display_name": "Scdc",
+      "rating": 1200,
+      "has_played": false,
+      "status": "new",
+      "color": "#90EE90"
+    },
+    {
+      "position": 7,
+      "player": "ssdfs",
+      "display_name": "Ssdfs",
+      "rating": 1200,
+      "has_played": false,
+      "status": "new",
+      "color": "#90EE90"
+    },
+    {
+      "position": 8,
+      "player": "j",
+      "display_name": "J",
+      "rating": 1200,
+      "has_played": false,
+      "status": "new",
+      "color": "#90EE90"
+    },
+    {
+      "position": 9,
+      "player": "new_player",
+      "display_name": "New Player",
+      "rating": 1200,
+      "has_played": false,
+      "status": "new",
+      "color": "#90EE90"
+    }
+  ],
+  "total_players": 9
+}

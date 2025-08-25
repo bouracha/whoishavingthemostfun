@@ -34,7 +34,7 @@ python3 graph.py "chess/dean.csv" "chess/eid.csv" "chess/anthony.csv"
 - Automatically extends timeline to include all games
 - Displays player names directly on the lines
 - Shows dots for start points, each game, and end points
-- Saves as `web/chess_ratings_progress.png` (or appropriate game name)
+- Generates JSON data for dynamic chart rendering
 
 **Example:**
 ```bash
@@ -53,7 +53,7 @@ python3 leaderboard.py chess
 - Includes medal images for top 3 players
 - Highlights new players (who haven't played yet) in green
 - Displays player images from `images/players/` folder
-- Saves as `web/chess_leaderboard.png`
+- Generates JSON data for interactive leaderboard display
 
 **Options:**
 ```bash
@@ -121,8 +121,8 @@ ELO/
 │   ├── anthony.csv
 │   └── ...
 ├── web/                 # Generated visualizations
-│   ├── chess_ratings_progress.png
-│   ├── chess_leaderboard.png
+│   ├── chess_ratings_progress.json
+│   ├── chess_leaderboard.json
 │   └── ...
 └── images/              # Custom images
     ├── medals/          # Medal images (1st.png, 2nd.png, 3rd.png)

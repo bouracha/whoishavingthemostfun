@@ -20,7 +20,7 @@ from datetime import timedelta
 sys.path.append(os.path.join(os.path.dirname(__file__), 'code'))
 
 # Import our existing functions
-from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts, calculate_elo_probability, add_comment_to_result
+from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts, calculate_elo_probability, add_comment_to_result, log_pending_result, approve_pending_results, delete_pending_result, clear_all_pending_results, format_comment_for_storage, add_admin_note_to_pending
 
 app = Flask(__name__)
 # Secret key for sessions (override via env in production)
@@ -205,9 +205,6 @@ def add_player(game):
             starting_timestamp=starting_timestamp,
         )
         
-        # Generate updated charts
-        generate_charts(game)
-        
         return jsonify({
             'success': True, 
             'message': f'Player "{player_name}" added to {game}',
@@ -248,8 +245,6 @@ def add_player_team(team, game):
             starting_timestamp=starting_timestamp,
         )
 
-        # Generate updated charts for this team
-        generate_charts_for_team(team, game)
 
         return jsonify({'success': True, 'message': f'Player "{player_name}" added to {game} for team {team}', 'player_name': player_name, 'team': team})
     except ValueError as ve:
@@ -269,9 +264,6 @@ def remove_player(game, player_name):
         # Remove the player's CSV file
         os.remove(file_path)
         
-        # Generate updated charts
-        generate_charts(game)
-        
         return jsonify({
             'success': True,
             'message': f'Player "{player_name}" removed from {game}'
@@ -290,35 +282,167 @@ def remove_player_team(team, game, player_name):
         if not os.path.exists(file_path):
             return jsonify({'error': f'Player "{player_name}" not found in {game} for team {team}'}), 404
         os.remove(file_path)
-        generate_charts_for_team(team, game)
         return jsonify({'success': True, 'message': f'Player "{player_name}" removed from {game}', 'team': team})
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/charts/<game>/generate', methods=['POST'])
-def regenerate_charts(game):
-    """Regenerate leaderboard and ratings charts for a game"""
+
+# Chart Data API Endpoints
+@app.route('/api/charts/<game>/leaderboard', methods=['GET'])
+def get_leaderboard_data(game):
+    """Get leaderboard data in JSON format for interactive charts"""
     try:
-        generate_charts(game)
-        return jsonify({
-            'success': True,
-            'message': f'Charts regenerated for {game}'
-        })
-    
+        import subprocess
+        import sys
+        import json
+        
+        # Change to code directory for script execution
+        original_cwd = os.getcwd()
+        os.chdir(CODE_DIR)
+        
+        try:
+            # Run leaderboard script with JSON output to stdout
+            cmd = [sys.executable, 'leaderboard.py', game, '--json', '--stdout']
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            
+            # Parse JSON from stdout
+            data = json.loads(result.stdout)
+            
+            return jsonify(data)
+            
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
+            
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/<team>/charts/<game>/generate', methods=['POST'])
-def regenerate_charts_team(team, game):
+@app.route('/api/charts/<game>/ratings-progress', methods=['GET'])
+def get_ratings_progress_data(game):
+    """Get ratings progress data in JSON format for interactive charts"""
+    try:
+        import subprocess
+        import sys
+        import json
+        from pathlib import Path
+        
+        # Change to code directory for script execution
+        original_cwd = os.getcwd()
+        os.chdir(CODE_DIR)
+        
+        try:
+            # Find all CSV files for this game
+            game_dir = f"../database/{game}"
+            if not os.path.exists(game_dir):
+                return jsonify({'error': f'Game directory not found: {game}'}), 404
+            
+            csv_files = list(Path(game_dir).glob('*.csv'))
+            if not csv_files:
+                return jsonify({'error': f'No player data found for game: {game}'}), 404
+            
+            # Convert to relative paths for the script
+            csv_paths = [str(csv_file) for csv_file in csv_files]
+            
+            # Run graph script with JSON output to stdout
+            cmd = [sys.executable, 'graph.py'] + csv_paths + ['--json', '--stdout']
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            
+            # Parse JSON from stdout
+            data = json.loads(result.stdout)
+            
+            return jsonify(data)
+            
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/<team>/charts/<game>/leaderboard', methods=['GET'])
+def get_leaderboard_data_team(team, game):
+    """Get team leaderboard data in JSON format for interactive charts"""
     try:
         team = sanitize_team(team)
         assert_team_access(team)
-        generate_charts_for_team(team, game)
-        return jsonify({'success': True, 'message': f'Charts regenerated for {game}', 'team': team})
+        
+        import subprocess
+        import sys
+        import json
+        
+        # Change to code directory for script execution
+        original_cwd = os.getcwd()
+        os.chdir(CODE_DIR)
+        
+        try:
+            # Run leaderboard script with JSON output to stdout
+            cmd = [sys.executable, 'leaderboard.py', f"{team}/{game}", '--json', '--stdout']
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            
+            # Parse JSON from stdout
+            data = json.loads(result.stdout)
+            
+            return jsonify(data)
+            
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
+            
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/<team>/charts/<game>/ratings-progress', methods=['GET'])
+def get_ratings_progress_data_team(team, game):
+    """Get team ratings progress data in JSON format for interactive charts"""
+    try:
+        team = sanitize_team(team)
+        assert_team_access(team)
+        
+        import subprocess
+        import sys
+        import json
+        from pathlib import Path
+        
+        # Change to code directory for script execution
+        original_cwd = os.getcwd()
+        os.chdir(CODE_DIR)
+        
+        try:
+            # Find all CSV files for this team/game
+            game_dir = f"../database/{team}/{game}"
+            if not os.path.exists(game_dir):
+                return jsonify({'error': f'Game directory not found: {team}/{game}'}), 404
+            
+            csv_files = list(Path(game_dir).glob('*.csv'))
+            if not csv_files:
+                return jsonify({'error': f'No player data found for game: {team}/{game}'}), 404
+            
+            # Convert to relative paths for the script
+            csv_paths = [str(csv_file) for csv_file in csv_files]
+            
+            # Run graph script with JSON output to stdout
+            cmd = [sys.executable, 'graph.py'] + csv_paths + ['--json', '--stdout']
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            
+            # Parse JSON from stdout
+            data = json.loads(result.stdout)
+            
+            return jsonify(data)
+            
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
+            
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -459,6 +583,16 @@ def get_recent_results_main():
         # Get the requested slice
         df_paginated = df_sorted.iloc[offset:offset + limit]
         
+        # Normalize to int or None - moved outside loop for efficiency
+        def to_int_or_none(v):
+            try:
+                import pandas as _pd
+                if v is None or (isinstance(v, float) and _pd.isna(v)) or v == '':
+                    return None
+                return int(round(float(v)))
+            except Exception:
+                return None
+        
         # Format results for frontend
         results = []
         for _, row in df_paginated.iterrows():
@@ -478,15 +612,6 @@ def get_recent_results_main():
             except Exception:
                 p2c = None
             
-            # Normalize to int or None
-            def to_int_or_none(v):
-                try:
-                    import pandas as _pd
-                    if v is None or (isinstance(v, float) and _pd.isna(v)):
-                        return None
-                    return int(round(float(v)))
-                except Exception:
-                    return None
             player1_change = to_int_or_none(p1c)
             player2_change = to_int_or_none(p2c)
             
@@ -497,7 +622,7 @@ def get_recent_results_main():
             
             # Parse comments if they exist
             comments = []
-            if 'comments' in df_paginated.columns and pd.notna(row['comments']) and row['comments'] != '':
+            if 'comments' in df_paginated.columns and pd.notna(row['comments']) and row['comments'] != '' and row['comments'] != 'NaN':
                 try:
                     import ast
                     if row['comments'] != '[]':
@@ -560,6 +685,16 @@ def get_recent_results(team):
         # Get the requested slice
         df_paginated = df_sorted.iloc[offset:offset + limit]
         
+        # Normalize to int or None - moved outside loop for efficiency
+        def to_int_or_none(v):
+            try:
+                import pandas as _pd
+                if v is None or (isinstance(v, float) and _pd.isna(v)) or v == '':
+                    return None
+                return int(round(float(v)))
+            except Exception:
+                return None
+        
         # Format results for frontend
         results = []
         for _, row in df_paginated.iterrows():
@@ -579,15 +714,6 @@ def get_recent_results(team):
             except Exception:
                 p2c = None
             
-            # Normalize to int or None
-            def to_int_or_none(v):
-                try:
-                    import pandas as _pd
-                    if v is None or (isinstance(v, float) and _pd.isna(v)):
-                        return None
-                    return int(round(float(v)))
-                except Exception:
-                    return None
             player1_change = to_int_or_none(p1c)
             player2_change = to_int_or_none(p2c)
             
@@ -598,7 +724,7 @@ def get_recent_results(team):
             
             # Parse comments if they exist
             comments = []
-            if 'comments' in df_paginated.columns and pd.notna(row['comments']) and row['comments'] != '':
+            if 'comments' in df_paginated.columns and pd.notna(row['comments']) and row['comments'] != '' and row['comments'] != 'NaN':
                 try:
                     import ast
                     if row['comments'] != '[]':
@@ -653,7 +779,7 @@ def submit_result(game):
         if comment and not commenter_name:
             return jsonify({'error': 'Commenter name is required when adding a comment'}), 400
         
-        # Convert result to score for main.py
+        # Convert result to score for ELO calculation
         if result == '1-0':
             score = 1.0
         elif result == '0-1':
@@ -661,40 +787,54 @@ def submit_result(game):
         else:  # 1/2-1/2
             score = 0.5
         
-        # Use the submit_game_with_charts function directly (includes rating changes)
-        result_data = submit_game_with_charts(player1, player2, result, game)
-        
-        if result_data.get('success'):
+        # Read current ratings to calculate probability for pending result
+        try:
+            from update import read_ratings
+            ratings1, ratings2 = read_ratings(player1, player2, game, team=None)
+            rating1, rating2 = ratings1[-1], ratings2[-1]
+            
+            # Calculate expected probability for display
+            probability = calculate_elo_probability(rating1, rating2)
+            
+            # Prepare comment data if provided - use same format as results.csv
+            pending_comment = ''
+            if comment and commenter_name:
+                pending_comment = format_comment_for_storage(comment, commenter_name)
+            
+            # Log as pending result instead of processing immediately
+            log_pending_result(
+                player1=player1,
+                player2=player2,
+                result=result,
+                game=game,
+                team=None,
+                probability=probability,
+                timestamp=None,  # Will use current time
+                player1_change=None,  # Will be calculated during approval
+                player2_change=None,  # Will be calculated during approval
+                comment=pending_comment
+            )
+            
             response_data = {
                 'success': True,
-                'message': result_data['message'],
+                'message': f'Result submitted for approval: {player1} vs {player2} ({result})',
                 'game': game,
                 'player1': player1,
                 'player2': player2,
-                'result': result
+                'result': result,
+                'status': 'pending_approval'
             }
             
-            # Add comment if provided
+            # Include comment info in response
             if comment and commenter_name:
-                comment_result = add_comment_to_result(
-                    comment=comment,
-                    commenter_name=commenter_name,
-                    team=None,
-                    offset=0,
-                    index=0  # Latest result is at position 0,0
-                )
-                
-                if comment_result.get('success'):
-                    response_data['comment_added'] = True
-                    response_data['comment'] = comment_result.get('comment')
-                    response_data['message'] += ' (with comment)'
-                else:
-                    # Comment failed but game succeeded - still return success
-                    response_data['comment_error'] = comment_result.get('error')
+                response_data['comment_added'] = True
+                response_data['comment'] = f'"{comment}" - {commenter_name}'
+                response_data['message'] += ' (with comment)'
             
             return jsonify(response_data)
-        else:
-            return jsonify({'error': result_data.get('error', 'Unknown error')}), 500
+            
+        except Exception as e:
+            return jsonify({'error': f'Failed to submit result for approval: {str(e)}'}), 500
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -725,38 +865,52 @@ def submit_result_team(team, game):
 
         score = 1.0 if result == '1-0' else 0.0 if result == '0-1' else 0.5
 
-        # Use the submit_game_with_charts function directly (includes rating changes)
-        result_data = submit_game_with_charts(player1, player2, result, game, team=team)
-        
-        if result_data.get('success'):
+        # Read current ratings to calculate probability for pending result
+        try:
+            from update import read_ratings
+            ratings1, ratings2 = read_ratings(player1, player2, game, team=team)
+            rating1, rating2 = ratings1[-1], ratings2[-1]
+            
+            # Calculate expected probability for display
+            probability = calculate_elo_probability(rating1, rating2)
+            
+            # Prepare comment data if provided - use same format as results.csv
+            pending_comment = ''
+            if comment and commenter_name:
+                pending_comment = format_comment_for_storage(comment, commenter_name)
+            
+            # Log as pending result instead of processing immediately
+            log_pending_result(
+                player1=player1,
+                player2=player2,
+                result=result,
+                game=game,
+                team=team,
+                probability=probability,
+                timestamp=None,  # Will use current time
+                player1_change=None,  # Will be calculated during approval
+                player2_change=None,  # Will be calculated during approval
+                comment=pending_comment
+            )
+            
             response_data = {
                 'success': True,
-                'message': result_data['message'],
+                'message': f'Result submitted for approval: {player1} vs {player2} ({result})',
                 'game': game,
-                'team': team
+                'team': team,
+                'status': 'pending_approval'
             }
             
-            # Add comment if provided
+            # Include comment info in response
             if comment and commenter_name:
-                comment_result = add_comment_to_result(
-                    comment=comment,
-                    commenter_name=commenter_name,
-                    team=team,
-                    offset=0,
-                    index=0  # Latest result is at position 0,0
-                )
-                
-                if comment_result.get('success'):
-                    response_data['comment_added'] = True
-                    response_data['comment'] = comment_result.get('comment')
-                    response_data['message'] += ' (with comment)'
-                else:
-                    # Comment failed but game succeeded - still return success
-                    response_data['comment_error'] = comment_result.get('error')
+                response_data['comment_added'] = True
+                response_data['comment'] = f'"{comment}" - {commenter_name}'
+                response_data['message'] += ' (with comment)'
             
             return jsonify(response_data)
-        else:
-            return jsonify({'error': result_data.get('error', 'Unknown error')}), 500
+            
+        except Exception as e:
+            return jsonify({'error': f'Failed to submit result for approval: {str(e)}'}), 500
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400
     except PermissionError:
@@ -764,101 +918,312 @@ def submit_result_team(team, game):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def generate_charts(game):
-    """Generate leaderboard and ratings progress charts for a game"""
+@app.route('/api/pending-results', methods=['GET'])
+def get_pending_results_main():
+    """Get pending results for the main (non-team) database with pagination"""
     try:
-        # Change to code directory for script execution
-        original_cwd = os.getcwd()
-        os.chdir(CODE_DIR)
+        # Determine the correct path based on where we're running from
+        database_path = "database" if os.path.exists("database") else "../database"
+        pending_file = f"{database_path}/pending_results.csv"
         
-        # Generate leaderboard
-        try:
-            subprocess.run([
-                sys.executable, 'leaderboard.py', game
-            ], check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError:
-            # Leaderboard might fail if no players exist, that's okay
-            pass
+        if not os.path.exists(pending_file):
+            return jsonify({'results': [], 'has_more': False})
         
-        # Generate ratings progress chart
-        try:
-            game_dir = os.path.join('..', 'database', game)
-            csv_files = list(Path(game_dir).glob('*.csv'))
-            if csv_files:
-                csv_paths = [str(csv_file) for csv_file in csv_files]
-                subprocess.run([
-                    sys.executable, 'graph.py'
-                ] + csv_paths, check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError:
-            # Graph might fail if no actual games played, that's okay
-            pass
+        # Read the pending results CSV
+        df = pd.read_csv(pending_file)
         
-        # Restore original working directory
-        os.chdir(original_cwd)
+        if df.empty:
+            return jsonify({'results': [], 'has_more': False})
+        
+        # Get pagination parameters
+        offset = request.args.get('offset', 0, type=int)
+        limit = request.args.get('limit', 25, type=int)
+        
+        # Sort by submission timestamp descending (newest first)
+        if 'submission_timestamp' in df.columns:
+            df['timestamp_sort'] = pd.to_datetime(df['submission_timestamp'], format='mixed')
+        else:
+            df['timestamp_sort'] = pd.to_datetime(df['timestamp'], format='mixed')
+        df_sorted = df.sort_values('timestamp_sort', ascending=False)
+        
+        # Check if there are more results available
+        total_results = len(df_sorted)
+        has_more = (offset + limit) < total_results
+        
+        # Get the requested slice
+        df_paginated = df_sorted.iloc[offset:offset + limit]
+        
+        # Format results for frontend
+        results = []
+        for idx, (_, row) in enumerate(df_paginated.iterrows()):
+            # Format player names for display
+            player1_display = format_player_name_for_display(row['player1'])
+            player2_display = format_player_name_for_display(row['player2'])
+            timestamp_str = row['timestamp']
+            probability = float(row['probability'])
+            
+            # Generate commentary for pending results
+            commentary = _generate_result_commentary(
+                player1_display, player2_display, row['result'], probability, timestamp_str
+            )
+            
+            # Handle NaN values properly
+            notes_to_admin = row.get('notes_to_admin', '')
+            if pd.isna(notes_to_admin):
+                notes_to_admin = ''
+            
+            comments = row.get('comments', '')
+            if pd.isna(comments):
+                comments = ''
+            
+            results.append({
+                'index': offset + idx,  # Index for deletion
+                'timestamp': timestamp_str,
+                'game': row['game'].title(),
+                'player1': player1_display,
+                'player2': player2_display,
+                'result': row['result'],
+                'probability': probability,
+                'commentary': commentary,
+                'status': 'pending',
+                'submission_timestamp': row.get('submission_timestamp', timestamp_str),
+                'notes_to_admin': notes_to_admin,
+                'comments': comments
+            })
+        
+        return jsonify({'results': results, 'has_more': has_more})
         
     except Exception as e:
-        # Restore original working directory on error
-        os.chdir(original_cwd)
-        raise e
+        return jsonify({'error': str(e)}), 500
 
-
-def generate_charts_for_team(team: str, game: str):
-    """Generate charts for a specific team/game, saving under web/<team>/..."""
-    original_cwd = os.getcwd()
-    os.chdir(CODE_DIR)
+@app.route('/api/<team>/pending-results', methods=['GET'])
+def get_pending_results_team(team):
+    """Get pending results for a team with pagination"""
     try:
-        # Ensure output subdir exists
-        os.makedirs(os.path.join('..', 'web', team), exist_ok=True)
-
-        # Leaderboard: pass team/game as folder to leverage existing script
-        try:
-            subprocess.run([
-                sys.executable, 'leaderboard.py', f"{team}/{game}"
-            ], check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError:
-            pass
-
-        # Ratings progress: pass CSV paths
-        try:
-            team_game_dir = os.path.join('..', 'database', team, game)
-            csv_files = list(Path(team_game_dir).glob('*.csv'))
-            if csv_files:
-                csv_paths = [str(csv_file) for csv_file in csv_files]
-                subprocess.run([
-                    sys.executable, 'graph.py'
-                ] + csv_paths, check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError:
-            pass
-    finally:
-        os.chdir(original_cwd)
-
-
-# Team chart serving endpoints
-@app.route('/api/<team>/charts/<game>/leaderboard.png')
-def serve_team_leaderboard(team, game):
-    team = sanitize_team(team)
-    try:
+        team = sanitize_team(team)
         assert_team_access(team)
+        
+        # Determine the correct path based on where we're running from
+        database_path = "database" if os.path.exists("database") else "../database"
+        pending_file = f"{database_path}/{team}/pending_results.csv"
+        
+        if not os.path.exists(pending_file):
+            return jsonify({'results': [], 'has_more': False})
+        
+        # Read the pending results CSV
+        df = pd.read_csv(pending_file)
+        
+        if df.empty:
+            return jsonify({'results': [], 'has_more': False})
+        
+        # Get pagination parameters
+        offset = request.args.get('offset', 0, type=int)
+        limit = request.args.get('limit', 25, type=int)
+        
+        # Sort by submission timestamp descending (newest first)
+        if 'submission_timestamp' in df.columns:
+            df['timestamp_sort'] = pd.to_datetime(df['submission_timestamp'], format='mixed')
+        else:
+            df['timestamp_sort'] = pd.to_datetime(df['timestamp'], format='mixed')
+        df_sorted = df.sort_values('timestamp_sort', ascending=False)
+        
+        # Check if there are more results available
+        total_results = len(df_sorted)
+        has_more = (offset + limit) < total_results
+        
+        # Get the requested slice
+        df_paginated = df_sorted.iloc[offset:offset + limit]
+        
+        # Format results for frontend
+        results = []
+        for idx, (_, row) in enumerate(df_paginated.iterrows()):
+            # Format player names for display
+            player1_display = format_player_name_for_display(row['player1'])
+            player2_display = format_player_name_for_display(row['player2'])
+            timestamp_str = row['timestamp']
+            probability = float(row['probability'])
+            
+            # Generate commentary for pending results
+            commentary = _generate_result_commentary(
+                player1_display, player2_display, row['result'], probability, timestamp_str
+            )
+            
+            # Handle NaN values properly
+            notes_to_admin = row.get('notes_to_admin', '')
+            if pd.isna(notes_to_admin):
+                notes_to_admin = ''
+            
+            comments = row.get('comments', '')
+            if pd.isna(comments):
+                comments = ''
+            
+            results.append({
+                'index': offset + idx,  # Index for deletion
+                'timestamp': timestamp_str,
+                'game': row['game'].title(),
+                'player1': player1_display,
+                'player2': player2_display,
+                'result': row['result'],
+                'probability': probability,
+                'commentary': commentary,
+                'status': 'pending',
+                'submission_timestamp': row.get('submission_timestamp', timestamp_str),
+                'notes_to_admin': notes_to_admin,
+                'comments': comments,
+                'team': team
+            })
+        
+        return jsonify({'results': results, 'has_more': has_more})
+        
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
     except PermissionError:
-        return jsonify({'error': 'Forbidden'}), 403
-    # leaderboard.py saves as web/<game_folder>_leaderboard.png; with game_folder "team/game"
-    # This results in web/<team>/game_leaderboard.png
-    team_dir = os.path.join(WEB_DIR, team)
-    filename = f"{game}_leaderboard.png"
-    return send_from_directory(team_dir, filename)
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-
-@app.route('/api/<team>/charts/<game>/ratings_progress.png')
-def serve_team_ratings_progress(team, game):
-    team = sanitize_team(team)
+@app.route('/api/approve-all-pending', methods=['POST'])
+def approve_all_pending_main():
+    """Approve all pending results for the main database"""
     try:
+        result = approve_pending_results(team=None)
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/<team>/approve-all-pending', methods=['POST'])
+def approve_all_pending_team(team):
+    """Approve all pending results for a specific team"""
+    try:
+        team = sanitize_team(team)
         assert_team_access(team)
+        
+        result = approve_pending_results(team=team)
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 500
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
     except PermissionError:
-        return jsonify({'error': 'Forbidden'}), 403
-    # graph.py will save into web/<team>/<game>_ratings_progress.png if team is detected
-    team_dir = os.path.join(WEB_DIR, team)
-    filename = f"{game}_ratings_progress.png"
-    return send_from_directory(team_dir, filename)
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pending-results/<int:index>', methods=['DELETE'])
+def delete_pending_result_main(index):
+    """Delete a specific pending result by index from the main database"""
+    try:
+        result = delete_pending_result(index=index, team=None)
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/<team>/pending-results/<int:index>', methods=['DELETE'])
+def delete_pending_result_team(team, index):
+    """Delete a specific pending result by index from a team's database"""
+    try:
+        team = sanitize_team(team)
+        assert_team_access(team)
+        
+        result = delete_pending_result(index=index, team=team)
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 400
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pending-results', methods=['DELETE'])
+def clear_all_pending_results_main():
+    """Clear all pending results from the main database"""
+    try:
+        result = clear_all_pending_results(team=None)
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/<team>/pending-results', methods=['DELETE'])
+def clear_all_pending_results_team(team):
+    """Clear all pending results from a team's database"""
+    try:
+        team = sanitize_team(team)
+        assert_team_access(team)
+        
+        result = clear_all_pending_results(team=team)
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 500
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pending-results/<int:index>/admin-note', methods=['POST'])
+def add_admin_note_main(index):
+    """Add an admin note to a specific pending result in the main database"""
+    try:
+        data = request.get_json()
+        if not data or 'note' not in data:
+            return jsonify({'error': 'Note is required'}), 400
+        
+        note = data['note'].strip()
+        if not note:
+            return jsonify({'error': 'Note cannot be empty'}), 400
+        
+        result = add_admin_note_to_pending(index=index, note=note, team=None)
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/<team>/pending-results/<int:index>/admin-note', methods=['POST'])
+def add_admin_note_team(team, index):
+    """Add an admin note to a specific pending result in a team's database"""
+    try:
+        team = sanitize_team(team)
+        assert_team_access(team)
+        
+        data = request.get_json()
+        if not data or 'note' not in data:
+            return jsonify({'error': 'Note is required'}), 400
+        
+        note = data['note'].strip()
+        if not note:
+            return jsonify({'error': 'Note cannot be empty'}), 400
+        
+        result = add_admin_note_to_pending(index=index, note=note, team=team)
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 400
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 
 
 # Basic pages for login and team landing
