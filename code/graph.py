@@ -15,10 +15,11 @@ def get_middle_rating(times, ratings):
     middle_index = len(times) // 2
     return times[middle_index], ratings[middle_index]
 
-def bucket_player_data(times, ratings, bucket_boundaries, starting_rating):
+def bucket_player_data(times, ratings, bucket_boundaries, starting_rating, current_rating):
     """
     Bucket player data into time intervals and compute statistics.
     Returns bucket centers, means, and ranges.
+    Ensures the final point shows the actual current rating.
     """
     if not times:
         return [], [], []
@@ -32,6 +33,9 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating):
         end_time = bucket_boundaries[i + 1]
         bucket_center = start_time + (end_time - start_time) / 2
         
+        # Check if this is the final bucket
+        is_final_bucket = (i == len(bucket_boundaries) - 2)
+        
         # Collect ratings in this time bucket
         bucket_ratings = []
         for t, r in zip(times, ratings):
@@ -39,12 +43,21 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating):
                 bucket_ratings.append(r)
         
         if bucket_ratings:
-            mean_rating = np.mean(bucket_ratings)
+            if is_final_bucket:
+                # For the final bucket, use the actual current rating
+                mean_rating = current_rating
+            else:
+                # For other buckets, use the average
+                mean_rating = np.mean(bucket_ratings)
             rating_range = np.max(bucket_ratings) - np.min(bucket_ratings)
         else:
             # Use previous bucket's mean or starting rating
             if bucket_means:
-                mean_rating = bucket_means[-1]
+                if is_final_bucket:
+                    # For final bucket with no data, use current rating
+                    mean_rating = current_rating
+                else:
+                    mean_rating = bucket_means[-1]
             else:
                 mean_rating = starting_rating
             rating_range = 0
@@ -60,12 +73,15 @@ def plot_rating(filepath, label):
     try:
         data = pd.read_csv(filepath)
         
+        # Get current rating from the entire CSV file (last row)
+        current_rating = float(data['rating'].iloc[-1]) if not data.empty else 1200
+        
         # Skip initial entry and entries without opponents
         mask = (data['opponent'] != 'no opponent') & (data['opponent'].notna())
         game_data = data[mask]
         
         if game_data.empty:
-            return [], [], label, 1200
+            return [], [], label, 1200, current_rating
         
         times = []
         ratings = game_data['rating'].values
@@ -95,11 +111,11 @@ def plot_rating(filepath, label):
         # Get starting rating (from first row, before games)
         starting_rating = data['rating'].iloc[0] if not data.empty else 1200
         
-        return times, ratings, label, starting_rating
+        return times, ratings, label, starting_rating, current_rating
     
     except Exception as e:
         print(f"Error processing {filepath}: {e}")
-        return [], [], label, 1200
+        return [], [], label, 1200, 1200
 
 def create_ratings_progress_json(csv_files):
     """Create ratings progress data in JSON format for Plotly.js"""
@@ -111,11 +127,11 @@ def create_ratings_progress_json(csv_files):
     
     # Process each CSV file
     for csv_file in csv_files:
-        times, ratings, player_name, starting_rating = plot_rating(csv_file, csv_file)
+        times, ratings, player_name, starting_rating, current_rating = plot_rating(csv_file, csv_file)
         if times:  # Only include players with game data
             all_times.extend(times)
             all_ratings.extend(ratings)
-            player_data[player_name] = (times, ratings, starting_rating)
+            player_data[player_name] = (times, ratings, starting_rating, current_rating)
     
     if not all_times:
         return {"error": "No valid game data found"}
@@ -161,11 +177,11 @@ def create_ratings_progress_json(csv_files):
     players_series = []
     player_index = 0
     
-    for label, (times, ratings, starting_rating) in player_data.items():
+    for label, (times, ratings, starting_rating, current_rating) in player_data.items():
         if times:  # Player has games
             # Bucket the player's data
             bucket_centers, bucket_means, bucket_ranges = bucket_player_data(
-                times, ratings, bucket_boundaries, starting_rating
+                times, ratings, bucket_boundaries, starting_rating, current_rating
             )
             
             if bucket_centers:
@@ -181,11 +197,11 @@ def create_ratings_progress_json(csv_files):
                 
                 # Convert times to ISO strings for JSON serialization
                 x_data = [t.isoformat() for t in bucket_centers]
-                y_data = [float(rating) for rating in bucket_means]
-                range_data = [float(r) for r in bucket_ranges]
+                y_data = [int(rating) for rating in bucket_means]  # Floor round all chart data
+                range_data = [int(r) for r in bucket_ranges]  # Floor round range data
                 
-                # Get current rating (last rating)
-                current_rating = float(ratings[-1]) if len(ratings) > 0 else float(starting_rating)
+                # Use the actual current rating from the CSV file
+                # current_rating is already passed from plot_rating function
                 
                 players_series.append({
                     'name': display_name,
@@ -194,8 +210,8 @@ def create_ratings_progress_json(csv_files):
                     'y': y_data,
                     'ranges': range_data,
                     'color': color,
-                    'current_rating': current_rating,
-                    'starting_rating': float(starting_rating),
+                    'current_rating': int(current_rating),
+                    'starting_rating': int(starting_rating),  # Floor round starting rating
                     'games_played': len(times),
                     'is_inactive': is_inactive
                 })

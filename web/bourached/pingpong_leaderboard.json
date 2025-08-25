@@ -1,0 +1,17 @@
+{
+  "title": "Pingpong Leaderboard",
+  "game": "pingpong",
+  "team": "bourached",
+  "players": [
+    {
+      "position": 1,
+      "player": "anthony",
+      "display_name": "Anthony",
+      "rating": 1200,
+      "has_played": false,
+      "status": "new",
+      "color": "#90EE90"
+    }
+  ],
+  "total_players": 1
+}
