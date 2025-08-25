@@ -767,6 +767,15 @@
     </div>
     
     <script>
+        // Immediately hide admin controls on page load (before async operations)
+        (function() {
+            const adminControls = document.getElementById('adminControls');
+            if (adminControls) {
+                adminControls.style.display = 'none';
+                console.log('🔧 Admin controls hidden on initial page load');
+            }
+        })();
+        
         // Check if the API server is running
         async function checkServerStatus() {
             // Determine API URL based on where we're running
@@ -798,6 +807,69 @@
         let currentTeam = null;
         let hasMoreResults = false;
         let hasPendingResults = false;
+        
+        // Global variables for user session
+        let currentUserIsAdmin = false;
+        let currentUserRole = 'regular';
+        
+        // Get current user session information
+        async function getCurrentUserSession() {
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const url = isLocal ? 'http://localhost:8080/api/auth/session' : '/api/auth/session';
+                const response = await fetch(url, { 
+                    method: 'GET', 
+                    credentials: 'include' 
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUserIsAdmin = data.is_admin || false;
+                    currentUserRole = data.role || 'regular';
+                    console.log(`User session: ${data.username}, Role: ${data.role}, Admin: ${data.is_admin}`);
+                    
+                    // Update admin controls visibility
+                    updateAdminControlsVisibility();
+                    
+                    return data;
+                } else {
+                    console.log('Not logged in or session expired');
+                    currentUserIsAdmin = false;
+                    currentUserRole = 'regular';
+                    
+                    // Hide admin controls for non-logged in users
+                    updateAdminControlsVisibility();
+                    
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error getting user session:', error);
+                currentUserIsAdmin = false;
+                currentUserRole = 'regular';
+                
+                // Hide admin controls on error
+                updateAdminControlsVisibility();
+                
+                return null;
+            }
+        }
+        
+        // Update admin controls visibility based on user role
+        function updateAdminControlsVisibility() {
+            const adminControls = document.getElementById('adminControls');
+            if (adminControls) {
+                console.log(`🔧 Updating admin controls visibility. currentUserIsAdmin: ${currentUserIsAdmin}`);
+                if (currentUserIsAdmin) {
+                    adminControls.style.display = 'block';
+                    console.log('🔧 Admin controls shown');
+                } else {
+                    adminControls.style.display = 'none';
+                    console.log('🔧 Admin controls hidden');
+                }
+            } else {
+                console.log('🔧 Admin controls element not found');
+            }
+        }
         
         // Load recent results for a team or main homepage
         async function loadRecentResults(team, offset = 0, append = false) {
@@ -943,7 +1015,7 @@
                                     ${isPending ? `<div id="admin-note-form-${resultId}" class="admin-note-form">
                                         <textarea class="admin-note-input" placeholder="Add a note for the admin (e.g., 'Added accidentally, please remove')" maxlength="300" id="admin-note-text-${resultId}"></textarea>
                                         <div class="admin-note-buttons">
-                                            <button class="cancel-note-btn" onclick="hideAdminNoteForm('${resultId}')">Cancel</button>
+                                            <button class="cancel-note-btn" onclick="hideAdminNoteForm('${resultId}')">Cancel123</button>
                                             <button class="submit-note-btn" onclick="submitAdminNote('${resultId}', ${result.index || index})">Submit Note</button>
                                         </div>
                                     </div>` : ''}
@@ -963,10 +1035,10 @@
                                 </div>
                                 <div class="result-actions">
                                     ${isPending ? `
-                                        <button class="delete-pending-btn" onclick="deletePendingResult(${result.index || index})">Delete</button>
-                                                                <button class="admin-note-btn" onclick="showAdminNoteForm('${resultId}')">📝 Add Note to Admin</button>
+                                        ${currentUserIsAdmin ? `<button class="delete-pending-btn" onclick="deletePendingResult(${result.index || index})">Delete</button>` : ''}
+                                        <button class="admin-note-btn" onclick="showAdminNoteForm('${resultId}')">📝 Add Note to Admin</button>
                                     ` : ''}
-                                    ${(!isPending && offset === 0 && index === 0) ? `<button class="undo-button" onclick="undoLastResult('${team || ''}')">↶ Undo</button>` : ''}
+                                    ${(!isPending && offset === 0 && index === 0 && currentUserIsAdmin) ? `<button class="undo-button" onclick="undoLastResult('${team || ''}')">↶ Undo</button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -1016,8 +1088,11 @@
         }
 
         // Check server status when page loads and update team-specific links
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             checkServerStatus();
+            
+            // Get current user session first
+            await getCurrentUserSession();
             
             // Check if we're in a team context (URL like /t/team)
             const parts = window.location.pathname.split('/').filter(Boolean);
@@ -1031,11 +1106,12 @@
                     <a href="/t/${team}/pingpong" class="game-button pingpong">&#127955; Ping Pong</a>
                 `;
                 
-                // Add logout button and team info
+                // Add logout button and team info with admin status
                 const loginSection = document.querySelector('div[style*="margin-top:20px"]');
+                const adminBadge = currentUserIsAdmin ? ' <span style="color: #dc3545; font-weight: bold;">(Admin)</span>' : '';
                 loginSection.innerHTML = `
                     <div style="margin-bottom: 15px; color: #666; font-size: 14px;">
-                        Logged in as team: <strong>${team.charAt(0).toUpperCase() + team.slice(1)}</strong>
+                        Logged in as team: <strong>${team.charAt(0).toUpperCase() + team.slice(1)}${adminBadge}</strong>
                     </div>
                     <button onclick="logout()" class="game-button" style="background:#dc3545">Logout</button>
                 `;
@@ -1303,7 +1379,7 @@
                 let confirmMessage = 'Are you sure you want to approve all pending results? This will process them immediately and update all ratings.';
                 
                 if (adminNotes.length > 0) {
-                    confirmMessage = `⚠️ ADMIN NOTES FOUND:\n\n${adminNotes.join('\n')}\n\nContinue to review...`;
+                    confirmMessage = `⚠️ ADMIN NOTES FOUND:\n\n${adminNotes.join('\n')}\n\n`;
                 }
                 
                 if (!confirm(confirmMessage)) {

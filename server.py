@@ -50,9 +50,12 @@ def ensure_teams_file():
     os.makedirs(DATABASE_DIR, exist_ok=True)
     if not os.path.exists(TEAMS_FILE):
         # Seed with example team 'bourached' / password 'just4fun'
+        # Also create admin user 'bourached_admin' with same password
         teams_data = {
             "bourached": {
-                "password_hash": generate_password_hash("just4fun")
+                "password_hash": generate_password_hash("just4fun"),
+                "admin_username": "bourached_admin",
+                "admin_password_hash": generate_password_hash("just4fun")
             }
         }
         with open(TEAMS_FILE, 'w') as f:
@@ -80,6 +83,24 @@ def sanitize_team(team: str) -> str:
 def get_team_from_session():
     team = session.get('team')
     return team
+
+
+def is_admin_from_session():
+    """Check if the current user is an admin"""
+    return session.get('is_admin', False)
+
+
+def get_user_role_from_session():
+    """Get the current user's role (admin or regular)"""
+    if is_admin_from_session():
+        return 'admin'
+    return 'regular'
+
+
+def assert_admin_access():
+    """Assert that the current user has admin privileges"""
+    if not is_admin_from_session():
+        raise PermissionError('Forbidden: admin access required')
 
 
 def assert_team_access(requested_team: str):
@@ -116,17 +137,43 @@ def serve_backgammon():
 def login():
     try:
         data = request.get_json(force=True)
-        team = sanitize_team(data.get('team', ''))
+        username = data.get('username', '').strip().lower()  # Can be team name or admin username
         password = data.get('password', '')
 
         teams = load_teams()
-        team_info = teams.get(team)
-        if not team_info or not check_password_hash(team_info.get('password_hash', ''), password):
-            return jsonify({"error": "Invalid team or password"}), 401
+        
+        # Check if this is an admin login (username ends with _admin)
+        is_admin = username.endswith('_admin')
+        team_name = username[:-6] if is_admin else username  # Remove '_admin' suffix
+        
+        # Sanitize team name
+        team_name = sanitize_team(team_name)
+        
+        team_info = teams.get(team_name)
+        if not team_info:
+            return jsonify({"error": "Invalid team or username"}), 401
+        
+        # Check password based on user type
+        if is_admin:
+            # Admin login - check admin password
+            if not check_password_hash(team_info.get('admin_password_hash', ''), password):
+                return jsonify({"error": "Invalid admin username or password"}), 401
+        else:
+            # Regular team login - check team password
+            if not check_password_hash(team_info.get('password_hash', ''), password):
+                return jsonify({"error": "Invalid team or password"}), 401
 
         session.permanent = True
-        session['team'] = team
-        return jsonify({"success": True, "team": team})
+        session['team'] = team_name
+        session['is_admin'] = is_admin
+        session['username'] = username
+        
+        return jsonify({
+            "success": True, 
+            "team": team_name,
+            "is_admin": is_admin,
+            "username": username
+        })
     except ValueError as ve:
         return jsonify({"error": str(ve)}), 400
     except Exception as e:
@@ -136,7 +183,24 @@ def login():
 @app.route('/api/auth/logout', methods=['POST'])
 def logout():
     session.pop('team', None)
+    session.pop('is_admin', None)
+    session.pop('username', None)
     return jsonify({"success": True})
+
+
+@app.route('/api/auth/session', methods=['GET'])
+def get_session_info():
+    """Get current session information"""
+    team = get_team_from_session()
+    if not team:
+        return jsonify({"error": "Not logged in"}), 401
+    
+    return jsonify({
+        "team": team,
+        "is_admin": is_admin_from_session(),
+        "username": session.get('username', ''),
+        "role": get_user_role_from_session()
+    })
 
 @app.route('/api/players/<game>', methods=['GET'])
 def get_players(game):
@@ -1086,11 +1150,16 @@ def get_pending_results_team(team):
 def approve_all_pending_main():
     """Approve all pending results for the main database"""
     try:
+        # Require admin access for approve all operations
+        assert_admin_access()
+        
         result = approve_pending_results(team=None)
         if result.get('success'):
             return jsonify(result)
         else:
             return jsonify({'error': result.get('error', 'Unknown error')}), 500
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: admin access required'}), 403
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1101,6 +1170,9 @@ def approve_all_pending_team(team):
         team = sanitize_team(team)
         assert_team_access(team)
         
+        # Require admin access for approve all operations
+        assert_admin_access()
+        
         result = approve_pending_results(team=team)
         if result.get('success'):
             return jsonify(result)
@@ -1108,8 +1180,11 @@ def approve_all_pending_team(team):
             return jsonify({'error': result.get('error', 'Unknown error')}), 500
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400
-    except PermissionError:
-        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except PermissionError as pe:
+        if 'admin access required' in str(pe):
+            return jsonify({'error': 'Forbidden: admin access required'}), 403
+        else:
+            return jsonify({'error': 'Forbidden: not logged into this team'}), 403
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1117,11 +1192,16 @@ def approve_all_pending_team(team):
 def delete_pending_result_main(index):
     """Delete a specific pending result by index from the main database"""
     try:
+        # Require admin access for delete operations
+        assert_admin_access()
+        
         result = delete_pending_result(index=index, team=None)
         if result.get('success'):
             return jsonify(result)
         else:
             return jsonify({'error': result.get('error', 'Unknown error')}), 400
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: admin access required'}), 403
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1132,6 +1212,9 @@ def delete_pending_result_team(team, index):
         team = sanitize_team(team)
         assert_team_access(team)
         
+        # Require admin access for delete operations
+        assert_admin_access()
+        
         result = delete_pending_result(index=index, team=team)
         if result.get('success'):
             return jsonify(result)
@@ -1139,8 +1222,11 @@ def delete_pending_result_team(team, index):
             return jsonify({'error': result.get('error', 'Unknown error')}), 400
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400
-    except PermissionError:
-        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except PermissionError as pe:
+        if 'admin access required' in str(pe):
+            return jsonify({'error': 'Forbidden: admin access required'}), 403
+        else:
+            return jsonify({'error': 'Forbidden: not logged into this team'}), 403
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1148,11 +1234,16 @@ def delete_pending_result_team(team, index):
 def clear_all_pending_results_main():
     """Clear all pending results from the main database"""
     try:
+        # Require admin access for clear all operations
+        assert_admin_access()
+        
         result = clear_all_pending_results(team=None)
         if result.get('success'):
             return jsonify(result)
         else:
             return jsonify({'error': result.get('error', 'Unknown error')}), 500
+    except PermissionError:
+        return jsonify({'error': 'Forbidden: admin access required'}), 403
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1163,6 +1254,9 @@ def clear_all_pending_results_team(team):
         team = sanitize_team(team)
         assert_team_access(team)
         
+        # Require admin access for clear all operations
+        assert_admin_access()
+        
         result = clear_all_pending_results(team=team)
         if result.get('success'):
             return jsonify(result)
@@ -1170,8 +1264,11 @@ def clear_all_pending_results_team(team):
             return jsonify({'error': result.get('error', 'Unknown error')}), 500
     except ValueError as ve:
         return jsonify({'error': str(ve)}), 400
-    except PermissionError:
-        return jsonify({'error': 'Forbidden: not logged into this team'}), 403
+    except PermissionError as pe:
+        if 'admin access required' in str(pe):
+            return jsonify({'error': 'Forbidden: admin access required'}), 403
+        else:
+            return jsonify({'error': 'Forbidden: not logged into this team'}), 403
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1333,32 +1430,10 @@ def get_available_games():
 def undo_last_result_main():
     """Undo the last result from the main database"""
     try:
-        result = undo_last_result(team=None)
-        if result.get('success'):
-            return jsonify({
-                'success': True,
-                'message': result['message'],
-                'undone_result': result['undone_result']
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['error']
-            }), 400
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Server error: {str(e)}'
-        }), 500
-
-@app.route('/api/<team>/undo-last-result', methods=['POST'])
-def undo_last_result_team(team):
-    """Undo the last result from a specific team's database"""
-    try:
-        # Validate team access
-        assert_team_access(team)
+        # Require admin access for undo operations
+        assert_admin_access()
         
-        result = undo_last_result(team=team)
+        result = undo_last_result(team=None)
         if result.get('success'):
             return jsonify({
                 'success': True,
@@ -1373,8 +1448,47 @@ def undo_last_result_team(team):
     except PermissionError:
         return jsonify({
             'success': False,
-            'error': 'Forbidden: not logged into this team'
+            'error': 'Forbidden: admin access required'
         }), 403
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/api/<team>/undo-last-result', methods=['POST'])
+def undo_last_result_team(team):
+    """Undo the last result from a specific team's database"""
+    try:
+        # Validate team access
+        assert_team_access(team)
+        
+        # Require admin access for undo operations
+        assert_admin_access()
+        
+        result = undo_last_result(team=team)
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': result['message'],
+                'undone_result': result['undone_result']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 400
+    except PermissionError as pe:
+        if 'admin access required' in str(pe):
+            return jsonify({
+                'success': False,
+                'error': 'Forbidden: admin access required'
+            }), 403
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Forbidden: not logged into this team'
+            }), 403
     except Exception as e:
         return jsonify({
             'success': False,

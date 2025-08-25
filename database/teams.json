@@ -1,1 +1,1 @@
-{"bourached": {"password_hash": "pbkdf2:sha256:1000000$rzu1wfYVCQYZNEsc$9f41ea54554ee3ed368aabdf5732ba8ccf87e5b7167f271ac8e41596056c1de0"}}
+{"bourached": {"password_hash": "pbkdf2:sha256:1000000$rzu1wfYVCQYZNEsc$9f41ea54554ee3ed368aabdf5732ba8ccf87e5b7167f271ac8e41596056c1de0", "admin_username": "bourached_admin", "admin_password_hash": "pbkdf2:sha256:1000000$rzu1wfYVCQYZNEsc$9f41ea54554ee3ed368aabdf5732ba8ccf87e5b7167f271ac8e41596056c1de0"}}

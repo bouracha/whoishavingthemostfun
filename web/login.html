@@ -18,8 +18,8 @@
 <body>
   <div class="card">
     <h2>Team Login</h2>
-    <label for="team">Team name</label>
-    <input id="team" placeholder="e.g. bourached" />
+    <label for="username">Username or Team name</label>
+    <input id="username" placeholder="e.g. bourached or bourached_admin" />
     <label for="password">Password</label>
     <input id="password" type="password" placeholder="Password" />
     <button onclick="login()">Login</button>
@@ -27,19 +27,19 @@
   </div>
   <script>
     async function login() {
-      const team = document.getElementById('team').value.trim().toLowerCase();
+      const username = document.getElementById('username').value.trim().toLowerCase();
       const password = document.getElementById('password').value;
       const msg = document.getElementById('msg');
       msg.style.display = 'none';
-      if (!team || !password) { msg.textContent = 'Enter team and password'; msg.style.display = 'block'; return; }
+      if (!username || !password) { msg.textContent = 'Enter username and password'; msg.style.display = 'block'; return; }
       const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       const url = isLocal ? 'http://localhost:8080/api/auth/login' : '/api/auth/login';
       try {
-        const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ team, password }) });
+        const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ username, password }) });
         const data = await res.json();
         if (!res.ok) { throw new Error(data.error || 'Login failed'); }
         // Redirect to team home
-        location.href = `/t/${team}`;
+        location.href = `/t/${data.team}`;
       } catch (e) {
         msg.textContent = e.message;
         msg.style.display = 'block';
