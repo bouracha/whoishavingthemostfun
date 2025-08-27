@@ -1,0 +1,1524 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Who's Having The Most Fun?</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .quote {
+            font-style: italic;
+            font-size: 28px;
+            font-weight: 500;
+            color: #2d3748;
+            margin: 40px 0;
+            padding: 30px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-left: 6px solid #667eea;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quote::before {
+            content: '"';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            font-size: 80px;
+            color: #667eea;
+            opacity: 0.1;
+            font-family: serif;
+        }
+        
+        .quote-author {
+            font-size: 18px;
+            color: #718096;
+            margin-top: 15px;
+            font-weight: 500;
+        }
+        
+        .game-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 25px 50px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 20px;
+            margin: 20px;
+            cursor: pointer;
+            border-radius: 15px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .game-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .game-button:hover::before {
+            left: 100%;
+        }
+        
+        .game-button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        }
+        
+        .game-button.chess {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            box-shadow: 0 8px 25px rgba(66, 153, 225, 0.3);
+        }
+        
+        .game-button.chess:hover {
+            box-shadow: 0 15px 35px rgba(66, 153, 225, 0.4);
+        }
+        
+        .game-button.backgammon {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            box-shadow: 0 8px 25px rgba(237, 137, 54, 0.3);
+        }
+        
+        .game-button.backgammon:hover {
+            box-shadow: 0 15px 35px rgba(237, 137, 54, 0.4);
+        }
+        
+        .game-button.pingpong {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            box-shadow: 0 8px 25px rgba(245, 101, 101, 0.3);
+        }
+        
+        .game-button.pingpong:hover {
+            box-shadow: 0 15px 35px rgba(245, 101, 101, 0.4);
+        }
+        
+        .recent-results {
+            margin: 40px 0;
+            text-align: left;
+            max-height: 800px;
+            overflow-y: auto;
+            border: none;
+            border-radius: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+        
+        .recent-results::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .recent-results::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        
+        .recent-results::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+        
+        .recent-results h3 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 600;
+            position: relative;
+        }
+        
+        .recent-results h3::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+        
+        .result-item {
+            background: white;
+            border: none;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-info {
+            flex: 1;
+        }
+        
+        .result-players {
+            font-weight: 600;
+            font-size: 18px;
+            color: #2d3748;
+            line-height: 1.4;
+        }
+        
+        .rating-change {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin: 0 4px;
+        }
+        
+        .rating-change.positive {
+            color: #38a169;
+            background: rgba(56, 161, 105, 0.1);
+        }
+        
+        .rating-change.negative {
+            color: #e53e3e;
+            background: rgba(229, 62, 62, 0.1);
+        }
+        
+        .result-details {
+            font-size: 14px;
+            color: #718096;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        .result-commentary {
+            font-size: 14px;
+            color: #667eea;
+            margin-top: 10px;
+            font-style: italic;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        
+        .inline-probability {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            font-style: normal;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .result-probability {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            color: #2d3748;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            min-width: 140px;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .result-probability .favorite {
+            color: #38a169;
+            font-weight: 700;
+        }
+        
+        .result-probability .underdog {
+            color: #e53e3e;
+            font-weight: 700;
+        }
+        
+        .no-results {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+            padding: 40px;
+            font-size: 16px;
+        }
+        
+        .undo-button {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            border: none;
+            color: white;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            margin-left: 15px;
+            box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+        }
+        
+        .undo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(245, 101, 101, 0.4);
+        }
+        
+        .undo-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .result-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+                .show-more-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .show-more-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .show-more-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Comment section styling */
+        .comments-section {
+            margin-top: 15px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+        
+        .existing-comments {
+            margin-bottom: 10px;
+        }
+        
+        .comment-item {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .comment-text {
+            color: #2d3748;
+            margin-bottom: 4px;
+            font-style: italic;
+        }
+        
+        .comment-author {
+            color: #718096;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .add-comment-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .add-comment-button:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        
+        .add-comment-form {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .comment-form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .comment-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .name-input {
+            width: 120px;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .comment-form-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        .submit-comment-button {
+            background: #38a169;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .submit-comment-button:hover {
+            background: #2f855a;
+        }
+        
+        .cancel-comment-button {
+            background: #a0aec0;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .cancel-comment-button:hover {
+            background: #718096;
+        }
+
+        /* Server offline warning styling */
+        #serverOffline {
+            background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 30px 0;
+            font-size: 16px;
+            border-left: 6px solid #e53e3e;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.1);
+        }
+        
+        /* Team login button */
+        .team-login {
+            background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 6px 20px rgba(113, 128, 150, 0.3);
+        }
+        
+        .team-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(113, 128, 150, 0.4);
+        }
+
+        /* Pending results styling */
+        .result-item.pending {
+            background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%);
+            border-left: 4px solid #f59e0b;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+        }
+        
+        .result-item.pending:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.25);
+        }
+        
+        .pending-badge {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 10px;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        .admin-controls {
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 15px;
+            border-left: 4px solid #4299e1;
+            display: none;
+        }
+        
+        .admin-controls h4 {
+            margin: 0 0 15px 0;
+            color: #2d3748;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .admin-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .admin-btn {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+        }
+        
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(66, 153, 225, 0.4);
+        }
+        
+        .admin-btn.danger {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+        }
+        
+        .admin-btn.danger:hover {
+            box-shadow: 0 6px 20px rgba(229, 62, 62, 0.4);
+        }
+        
+        .admin-btn.success {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            box-shadow: 0 4px 15px rgba(56, 161, 105, 0.3);
+        }
+        
+        .admin-btn.success:hover {
+            box-shadow: 0 6px 20px rgba(56, 161, 105, 0.4);
+        }
+        
+        .admin-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .delete-pending-btn {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+            box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
+        }
+        
+        .delete-pending-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4);
+        }
+        
+        .admin-note-btn {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+            box-shadow: 0 2px 8px rgba(56, 161, 105, 0.3);
+        }
+        
+        .admin-note-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(56, 161, 105, 0.4);
+        }
+        
+
+        
+        .admin-note-form {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+        
+        .admin-note-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .admin-note-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        .submit-note-btn {
+            background: #38a169;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .submit-note-btn:hover {
+            background: #2f855a;
+        }
+        
+        .cancel-note-btn {
+            background: #a0aec0;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .cancel-note-btn:hover {
+            background: #718096;
+        }
+        
+        .admin-notes-display {
+            background: #fed7d7;
+            border-left: 4px solid #f56565;
+            padding: 8px 12px;
+            margin-top: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-style: italic;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .quote {
+                font-size: 22px;
+                padding: 20px;
+            }
+            
+            .game-button {
+                padding: 20px 30px;
+                font-size: 18px;
+                margin: 10px;
+            }
+            
+            .result-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .result-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .admin-buttons {
+                flex-direction: column;
+            }
+            
+            .admin-btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+            <div class="container">
+            <div class="quote">
+                <div style="font-style: normal; font-size: 32px; font-weight: 700; color: #2d3748; margin-bottom: 10px;" id="teamName">Bourached Team Dashboard</div>
+                <div style="font-style: normal; font-size: 18px; color: #4a5568; margin-bottom: 20px;">Track your team's gaming excellence</div>
+                <button onclick="logout()" style="background: #e53e3e; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.background='#c53030'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#e53e3e'; this.style.transform='translateY(0)'">Logout</button>
+            </div>
+        
+            
+            <div id="serverOffline" style="background-color: #f8d7da; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; display: none;">
+                <strong>⚠️ Server Offline:</strong> The rating server is currently offline. You can still view existing charts, but adding new players is temporarily unavailable.
+            </div>
+        
+        <div id="gameButtons">
+            <a href="/chess" class="game-button chess">&#9819; Chess</a>
+            <a href="/backgammon" class="game-button backgammon">&#127922; Backgammon</a>
+            <a href="/pingpong" class="game-button pingpong">&#127955; Ping Pong</a>
+        </div>
+
+
+        <!-- Admin Controls section -->
+        <div id="adminControls" class="admin-controls">
+            <h4>🔧 Admin Controls</h4>
+            <div class="admin-buttons">
+                <button id="approveAllBtn" class="admin-btn success" onclick="approveAllPending()">✅ Approve All Pending</button>
+                <button id="deleteAllPendingBtn" class="admin-btn danger" onclick="deleteAllPending()">🗑️ Delete All Pending</button>
+            </div>
+        </div>
+
+        <!-- Recent Results section -->
+        <div id="recentResults" class="recent-results">
+            <h3>Recent Results</h3>
+            <div id="resultsContainer">
+                <!-- Results will be loaded here -->
+            </div>
+            <div id="show-more-container" style="text-align: center; margin-top: 15px; display: none;">
+                <button id="show-more-btn" class="show-more-button" onclick="loadMoreResults()">Show More Results</button>
+            </div>
+        </div>
+        
+        <!-- Monica image removed for team homepage -->
+    </div>
+
+    <script>
+        // Immediately hide admin controls on page load (before async operations)
+        (function() {
+            const adminControls = document.getElementById('adminControls');
+            if (adminControls) {
+                adminControls.style.display = 'none';
+                console.log('🔧 Admin controls hidden on initial page load');
+            }
+        })();
+        
+        // Check if the API server is running
+        async function checkServerStatus() {
+            // Determine API URL based on where we're running
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            const apiUrl = isLocal 
+                ? 'http://localhost:8080/api/health'
+                : '/api/health'; // Same domain - works for both HTTP and HTTPS!
+            
+            try {
+                const response = await fetch(apiUrl);
+                if (response.ok) {
+                    // Server is running - hide any warnings
+                    document.getElementById('serverOffline').style.display = 'none';
+                    return true;
+                }
+            } catch (error) {
+                // Server is offline or unreachable - show warning
+                document.getElementById('serverOffline').style.display = 'block';
+                return false;
+            }
+            return false;
+        }
+        
+
+
+        // Global variables for pagination
+        let currentOffset = 0;
+        let currentTeam = null;
+        let hasMoreResults = false;
+        let hasPendingResults = false;
+        
+        // Global variables for user session
+        let currentUserIsAdmin = false;
+        let currentUserRole = 'regular';
+        
+        // Get current user session information
+        async function getCurrentUserSession() {
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const url = isLocal ? 'http://localhost:8080/api/auth/session' : '/api/auth/session';
+                const response = await fetch(url, { 
+                    method: 'GET', 
+                    credentials: 'include' 
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUserIsAdmin = data.is_admin || false;
+                    currentUserRole = data.role || 'regular';
+                    console.log(`User session: ${data.username}, Role: ${data.role}, Admin: ${data.is_admin}`);
+                    
+                    // Update admin controls visibility
+                    updateAdminControlsVisibility();
+                    
+                    return data;
+                } else {
+                    console.log('Not logged in or session expired');
+                    currentUserIsAdmin = false;
+                    currentUserRole = 'regular';
+                    
+                    // Hide admin controls for non-logged in users
+                    updateAdminControlsVisibility();
+                    
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error getting user session:', error);
+                currentUserIsAdmin = false;
+                currentUserRole = 'regular';
+                
+                // Hide admin controls on error
+                updateAdminControlsVisibility();
+                
+                return null;
+            }
+        }
+        
+        // Update admin controls visibility based on user role
+        function updateAdminControlsVisibility() {
+            const adminControls = document.getElementById('adminControls');
+            if (adminControls) {
+                console.log(`🔧 Updating admin controls visibility. currentUserIsAdmin: ${currentUserIsAdmin}`);
+                if (currentUserIsAdmin) {
+                    adminControls.style.display = 'block';
+                    console.log('🔧 Admin controls shown');
+                } else {
+                    adminControls.style.display = 'none';
+                    console.log('🔧 Admin controls hidden');
+                }
+            } else {
+                console.log('🔧 Admin controls element not found');
+            }
+        }
+        
+        // Load recent results for a team or main homepage
+        async function loadRecentResults(team, offset = 0, append = false) {
+            try {
+                currentTeam = team;
+                currentOffset = offset;
+                
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                
+                // Fetch both pending and confirmed results
+                const pendingUrl = team 
+                    ? (isLocal ? `http://localhost:8080/api/${team}/pending-results?offset=0&limit=50` : `/api/${team}/pending-results?offset=0&limit=50`)
+                    : (isLocal ? `http://localhost:8080/api/pending-results?offset=0&limit=50` : `/api/pending-results?offset=0&limit=50`);
+                
+                const confirmedUrl = team 
+                    ? (isLocal ? `http://localhost:8080/api/${team}/recent-results?offset=${offset}&limit=15` : `/api/${team}/recent-results?offset=${offset}&limit=15`)
+                    : (isLocal ? `http://localhost:8080/api/recent-results?offset=${offset}&limit=15` : `/api/recent-results?offset=${offset}&limit=15`);
+                
+                // Fetch both pending and confirmed results in parallel
+                const [pendingResponse, confirmedResponse] = await Promise.all([
+                    fetch(pendingUrl, { credentials: 'include' }).catch(() => ({ ok: false, status: 404 })),
+                    fetch(confirmedUrl, { credentials: 'include' })
+                ]);
+                
+                if (!confirmedResponse.ok) {
+                    throw new Error(`HTTP error! status: ${confirmedResponse.status}`);
+                }
+                
+                const confirmedData = await confirmedResponse.json();
+                
+                // Handle pending results - if the request failed, treat as no pending results
+                let pendingData = { results: [], has_more: false };
+                if (pendingResponse.ok) {
+                    pendingData = await pendingResponse.json();
+                }
+                
+                const resultsContainer = document.getElementById('resultsContainer');
+                const showMoreContainer = document.getElementById('show-more-container');
+                const adminControls = document.getElementById('adminControls');
+                
+                // Check if we have pending results
+                hasPendingResults = pendingData.results && pendingData.results.length > 0;
+                
+                // Show/hide admin controls based on pending results
+                if (hasPendingResults) {
+                    adminControls.style.display = 'block';
+                } else {
+                    adminControls.style.display = 'none';
+                }
+                
+                let allResults = [];
+                
+                // Add pending results first (at the top)
+                if (pendingData.results && pendingData.results.length > 0) {
+                    allResults = allResults.concat(pendingData.results);
+                }
+                
+                // Add confirmed results
+                if (confirmedData.results && confirmedData.results.length > 0) {
+                    allResults = allResults.concat(confirmedData.results.map(result => ({...result, status: 'confirmed'})));
+                }
+                
+                if (allResults.length > 0) {
+                    const resultsHtml = allResults.map((result, index) => {
+                        const isPending = result.status === 'pending';
+                        const resultId = `result-${offset}-${index}`;
+                        
+                        // Handle comments for both pending and confirmed results
+                        let commentsHtml = '';
+                        try {
+                            // Handle NaN values from API
+                            if (result.comments && result.comments !== '' && result.comments !== 'NaN' && result.comments !== null) {
+                                let comments = [];
+                                
+                                // Handle different comment formats
+                                if (Array.isArray(result.comments)) {
+                                    // Already an array (confirmed results from API)
+                                    comments = result.comments;
+                                } else if (typeof result.comments === 'string' && result.comments.trim()) {
+                                    // String format - could be pending or confirmed
+                                    const commentStr = result.comments.trim();
+                                    if (commentStr.startsWith('[') && commentStr.endsWith(']')) {
+                                        // Parse string representation of array
+                                        try {
+                                            comments = JSON.parse(commentStr.replace(/'/g, '"'));
+                                        } catch (e) {
+                                            // Fallback to eval for Python format
+                                            try {
+                                                comments = eval(commentStr);
+                                            } catch (e2) {
+                                                // If both fail, skip comments
+                                                comments = [];
+                                            }
+                                        }
+                                    } else if (commentStr !== '[]' && commentStr !== '') {
+                                        // Single comment as string (but not empty list)
+                                        comments = [commentStr];
+                                    }
+                                }
+                                
+                                // Format comments consistently
+                                commentsHtml = comments.map(comment => {
+                                    const match = comment.match(/^"(.+)" - (.+)$/);
+                                    if (match) {
+                                        return `<div class="comment-item">
+                                            <div class="comment-text">"${match[1]}"</div>
+                                            <div class="comment-author">- ${match[2]}</div>
+                                        </div>`;
+                                    } else {
+                                        return `<div class="comment-item">
+                                            <div class="comment-text">${comment}</div>
+                                        </div>`;
+                                    }
+                                }).join('');
+                            }
+                        } catch (e) {
+                            // If comment parsing fails, just skip comments and continue
+                            console.warn('Comment parsing error:', e);
+                            commentsHtml = '';
+                        }
+                        
+                        return `
+                            <div class="result-item ${isPending ? 'pending' : ''}">
+                                <div class="result-info">
+                                    <div class="result-players">
+                                        ${result.player1} ${result.player1_change !== null && result.player1_change !== undefined ? `<span class="rating-change ${result.player1_change > 0 ? 'positive' : 'negative'}">(${result.player1_change > 0 ? '+' : ''}${result.player1_change})</span>` : ''} vs ${result.player2} ${result.player2_change !== null && result.player2_change !== undefined ? `<span class="rating-change ${result.player2_change > 0 ? 'positive' : 'negative'}">(${result.player2_change > 0 ? '+' : ''}${result.player2_change})</span>` : ''} (${result.result})
+                                        ${isPending ? '<span class="pending-badge">PENDING</span>' : ''}
+                                    </div>
+                                    <div class="result-details">
+                                        ${result.game} • ${result.timestamp}
+                                    </div>
+                                    <div class="result-commentary">
+                                        ${result.commentary || 'No commentary available'}
+                                    </div>
+                                    ${commentsHtml ? `<div class="comments-section">
+                                        <div class="existing-comments">
+                                            ${commentsHtml}
+                                        </div>
+                                    </div>` : ''}
+                                    ${isPending && result.notes_to_admin && result.notes_to_admin.trim() && result.notes_to_admin !== 'NaN' ? `<div class="admin-notes-display">
+                                        📝 Admin Notes: ${result.notes_to_admin}
+                                    </div>` : ''}
+                                    ${isPending ? `<div id="admin-note-form-${resultId}" class="admin-note-form">
+                                        <textarea class="admin-note-input" placeholder="Add a note for the admin (e.g., 'Added accidentally, please remove')" maxlength="300" id="admin-note-text-${resultId}"></textarea>
+                                        <div class="admin-note-buttons">
+                                            <button class="cancel-note-btn" onclick="hideAdminNoteForm('${resultId}')">Cancel</button>
+                                            <button class="submit-note-btn" onclick="submitAdminNote('${resultId}', ${result.index || index})">Submit Note</button>
+                                        </div>
+                                    </div>` : ''}
+                                    ${!isPending ? `<div class="comments-section">
+                                        <button class="add-comment-button" onclick="showCommentForm('${resultId}', '${result.timestamp}', ${offset}, ${index})">💬 Add Comment</button>
+                                        <div id="comment-form-${resultId}" class="add-comment-form" style="display: none;">
+                                            <div class="comment-form-row">
+                                                <input type="text" class="comment-input" placeholder="Add your comment..." maxlength="200" id="comment-text-${resultId}">
+                                                <input type="text" class="name-input" placeholder="Your name" maxlength="30" id="comment-name-${resultId}">
+                                            </div>
+                                            <div class="comment-form-buttons">
+                                                <button class="cancel-comment-button" onclick="hideCommentForm('${resultId}')">Cancel</button>
+                                                <button class="submit-comment-button" onclick="submitComment('${resultId}', '${result.timestamp}', ${offset}, ${index})">Submit</button>
+                                            </div>
+                                        </div>
+                                    </div>` : ''}
+                                </div>
+                                <div class="result-actions">
+                                    ${isPending ? `
+                                        ${currentUserIsAdmin ? `<button class="delete-pending-btn" onclick="deletePendingResult(${result.index || index})">Delete</button>` : ''}
+                                        <button class="admin-note-btn" onclick="showAdminNoteForm('${resultId}')">📝 Add Note to Admin</button>
+                                    ` : ''}
+                                    ${(!isPending && offset === 0 && index === 0 && currentUserIsAdmin) ? `<button class="undo-button" onclick="undoLastResult('${team || ''}')">↶ Undo</button>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    if (append) {
+                        resultsContainer.innerHTML += resultsHtml;
+                    } else {
+                        resultsContainer.innerHTML = resultsHtml;
+                    }
+                    
+                    // Show/hide "Show More" button based on confirmed results pagination
+                    hasMoreResults = confirmedData.has_more;
+                    if (hasMoreResults) {
+                        showMoreContainer.style.display = 'block';
+                    } else {
+                        showMoreContainer.style.display = 'none';
+                    }
+                } else {
+                    if (!append) {
+                        resultsContainer.innerHTML = '<div class="no-results">No recent results yet. Start playing some games!</div>';
+                    }
+                    showMoreContainer.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Error loading recent results:', error);
+                const resultsContainer = document.getElementById('resultsContainer');
+                if (!append) {
+                    resultsContainer.innerHTML = '<div class="no-results">Unable to load recent results</div>';
+                }
+            }
+        }
+        
+        // Load more results function
+        async function loadMoreResults() {
+            const showMoreBtn = document.getElementById('show-more-btn');
+            showMoreBtn.disabled = true;
+            showMoreBtn.textContent = 'Loading...';
+            
+            try {
+                await loadRecentResults(currentTeam, currentOffset + 10, true);
+            } finally {
+                showMoreBtn.disabled = false;
+                showMoreBtn.textContent = 'Show More Results';
+            }
+        }
+
+        // Check server status when page loads and update team-specific links
+        window.addEventListener('load', async () => {
+            checkServerStatus();
+            
+            // Get current user session first
+            await getCurrentUserSession();
+            
+            // Check if we're in a team context (URL like /t/team)
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            if (parts.length >= 2 && parts[0] === 't') {
+                const team = parts[1];
+                // Update game button links to be team-specific
+                const gameButtons = document.getElementById('gameButtons');
+                gameButtons.innerHTML = `
+                    <a href="/t/${team}/chess" class="game-button chess">&#9819; Chess</a>
+                    <a href="/t/${team}/backgammon" class="game-button backgammon">&#127922; Backgammon</a>
+                    <a href="/t/${team}/pingpong" class="game-button pingpong">&#127955; Ping Pong</a>
+                `;
+                
+                // Update team name in header
+                const teamNameElement = document.getElementById('teamName');
+                const adminBadge = currentUserIsAdmin ? ' <span style="color: #dc3545; font-weight: bold;">(Admin)</span>' : '';
+                teamNameElement.innerHTML = `${team.charAt(0).toUpperCase() + team.slice(1)} Team Dashboard${adminBadge}`;
+                
+                // Load recent results for this team
+                loadRecentResults(team);
+            } else {
+                // Load recent results for main homepage (non-team context)
+                loadRecentResults(null);
+            }
+        });
+        
+        async function logout() {
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const url = isLocal ? 'http://localhost:8080/api/auth/logout' : '/api/auth/logout';
+                await fetch(url, { method: 'POST', credentials: 'include' });
+            } catch (e) {
+                console.error('Logout error:', e);
+            }
+            // Redirect to main page regardless of logout success
+            window.location.href = '/';
+        }
+        
+        async function undoLastResult(team) {
+            if (!confirm('Are you sure you want to undo the last result? This action cannot be reversed.')) {
+                return;
+            }
+            
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = team 
+                    ? (isLocal ? `http://localhost:8080/api/${team}/undo-last-result` : `/api/${team}/undo-last-result`)
+                    : (isLocal ? `http://localhost:8080/api/undo-last-result` : `/api/undo-last-result`);
+                
+                // Disable all undo buttons during the operation
+                const undoButtons = document.querySelectorAll('.undo-button');
+                undoButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.textContent = 'Undoing...';
+                });
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    setTimeout(() => {
+                        // Refresh the charts
+                        location.reload();
+                    }, 1500);
+                } else {
+                    alert(`❌ Error: ${data.error}`);
+                    // Re-enable buttons
+                    undoButtons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.textContent = '↶ Undo';
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error undoing result:', error);
+                alert('❌ Failed to undo result. Please try again.');
+                // Re-enable buttons
+                const undoButtons = document.querySelectorAll('.undo-button');
+                undoButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.textContent = '↶ Undo';
+                });
+            }
+        }
+        
+        // Comment form functions
+        function showCommentForm(resultId, timestamp, offset, index) {
+            // Hide all other comment forms first
+            document.querySelectorAll('.add-comment-form').forEach(form => {
+                form.style.display = 'none';
+            });
+            
+            const form = document.getElementById(`comment-form-${resultId}`);
+            form.style.display = 'block';
+            
+            // Focus on comment input
+            const commentInput = document.getElementById(`comment-text-${resultId}`);
+            if (commentInput) {
+                commentInput.focus();
+            }
+        }
+        
+        function hideCommentForm(resultId) {
+            const form = document.getElementById(`comment-form-${resultId}`);
+            form.style.display = 'none';
+            
+            // Clear form inputs
+            document.getElementById(`comment-text-${resultId}`).value = '';
+            document.getElementById(`comment-name-${resultId}`).value = '';
+        }
+        
+        async function submitComment(resultId, timestamp, offset, index) {
+            const commentText = document.getElementById(`comment-text-${resultId}`).value.trim();
+            const commenterName = document.getElementById(`comment-name-${resultId}`).value.trim();
+            
+            if (!commentText) {
+                alert('Please enter a comment');
+                return;
+            }
+            
+            if (!commenterName) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            try {
+                const submitButton = document.querySelector(`#comment-form-${resultId} .submit-comment-button`);
+                const originalText = submitButton.textContent;
+                submitButton.disabled = true;
+                submitButton.textContent = 'Submitting...';
+                
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = currentTeam 
+                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/comments` : `/api/${currentTeam}/comments`)
+                    : (isLocal ? `http://localhost:8080/api/comments` : `/api/comments`);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        timestamp: timestamp,
+                        comment: commentText,
+                        commenter_name: commenterName,
+                        offset: offset,
+                        index: index
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('💬 Comment added successfully!');
+                    hideCommentForm(resultId);
+                    
+                    // Refresh the results to show the new comment
+                    loadRecentResults(currentTeam, 0, false);
+                } else {
+                    alert(`❌ Error adding comment: ${data.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error submitting comment:', error);
+                alert('❌ Failed to submit comment. Please try again.');
+            } finally {
+                const submitButton = document.querySelector(`#comment-form-${resultId} .submit-comment-button`);
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit';
+                }
+            }
+        }
+        
+        // Admin note functions
+        function showAdminNoteForm(resultId) {
+            const form = document.getElementById(`admin-note-form-${resultId}`);
+            form.style.display = 'block';
+            
+            // Focus on the textarea
+            const textarea = document.getElementById(`admin-note-text-${resultId}`);
+            if (textarea) {
+                textarea.focus();
+            }
+        }
+        
+        function hideAdminNoteForm(resultId) {
+            const form = document.getElementById(`admin-note-form-${resultId}`);
+            form.style.display = 'none';
+            
+            // Clear the textarea
+            document.getElementById(`admin-note-text-${resultId}`).value = '';
+        }
+        
+        async function submitAdminNote(resultId, index) {
+            const noteText = document.getElementById(`admin-note-text-${resultId}`).value.trim();
+            
+            if (!noteText) {
+                alert('Please enter a note');
+                return;
+            }
+            
+            try {
+                const submitButton = document.querySelector(`#admin-note-form-${resultId} .submit-note-btn`);
+                const originalText = submitButton.textContent;
+                submitButton.disabled = true;
+                submitButton.textContent = 'Submitting...';
+                
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = currentTeam 
+                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results/${index}/admin-note` : `/api/${currentTeam}/pending-results/${index}/admin-note`)
+                    : (isLocal ? `http://localhost:8080/api/pending-results/${index}/admin-note` : `/api/pending-results/${index}/admin-note`);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        note: noteText
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('📝 Admin note added successfully!');
+                    hideAdminNoteForm(resultId);
+                    
+                    // Refresh the results to show the new admin note
+                    loadRecentResults(currentTeam, 0, false);
+                } else {
+                    alert(`❌ Error adding admin note: ${data.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error submitting admin note:', error);
+                alert('❌ Failed to submit admin note. Please try again.');
+            } finally {
+                const submitButton = document.querySelector(`#admin-note-form-${resultId} .submit-note-btn`);
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Note';
+                }
+            }
+        }
+        
+
+
+        // Admin control functions
+        async function approveAllPending() {
+            // First, check if there are any admin notes to show
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const pendingUrl = currentTeam 
+                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results?offset=0&limit=100` : `/api/${currentTeam}/pending-results?offset=0&limit=100`)
+                    : (isLocal ? `http://localhost:8080/api/pending-results?offset=0&limit=100` : `/api/pending-results?offset=0&limit=100`);
+                
+                const response = await fetch(pendingUrl, { credentials: 'include' });
+                const data = await response.json();
+                
+                let adminNotes = [];
+                if (data.results && data.results.length > 0) {
+                    adminNotes = data.results
+                        .filter(result => result.notes_to_admin && result.notes_to_admin.trim() && result.notes_to_admin !== 'NaN')
+                        .map(result => `• ${result.player1} vs ${result.player2} (${result.game}): "${result.notes_to_admin}"`);
+                }
+                
+                let confirmMessage = 'Are you sure you want to approve all pending results? This will process them immediately and update all ratings.';
+                
+                if (adminNotes.length > 0) {
+                    confirmMessage = `⚠️ ADMIN NOTES FOUND:\n\n${adminNotes.join('\n')}\n\n`;
+                }
+                
+                if (!confirm(confirmMessage)) {
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking admin notes:', error);
+                if (!confirm('Are you sure you want to approve all pending results? This will process them immediately and update all ratings.')) {
+                    return;
+                }
+            }
+            
+            try {
+                const approveBtn = document.getElementById('approveAllBtn');
+                approveBtn.disabled = true;
+                approveBtn.textContent = 'Processing...';
+                
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = currentTeam 
+                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/approve-all-pending` : `/api/${currentTeam}/approve-all-pending`)
+                    : (isLocal ? `http://localhost:8080/api/approve-all-pending` : `/api/approve-all-pending`);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // After successfully approving, also delete all pending results
+                    try {
+                        const deleteUrl = currentTeam 
+                            ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results` : `/api/${currentTeam}/pending-results`)
+                            : (isLocal ? `http://localhost:8080/api/pending-results` : `/api/pending-results`);
+                        
+                        const deleteResponse = await fetch(deleteUrl, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        });
+                        
+                        const deleteData = await deleteResponse.json();
+                        
+                        if (deleteData.success) {
+                            alert(`✅ ${data.message}\n\n🗑️ All pending results have been cleared.`);
+                        } else {
+                            alert(`✅ ${data.message}\n\n⚠️ Results approved but failed to clear pending list: ${deleteData.error}`);
+                        }
+                    } catch (deleteError) {
+                        console.error('Error deleting pending results after approval:', deleteError);
+                        alert(`✅ ${data.message}\n\n⚠️ Results approved but failed to clear pending list.`);
+                    }
+                    
+                    // Refresh the charts exactly like undo does
+                    setTimeout(() => {
+                        // Refresh the charts
+                        location.reload();
+                    }, 1500);
+                } else {
+                    alert(`❌ Error: ${data.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error approving pending results:', error);
+                alert('❌ Failed to approve pending results. Please try again.');
+            } finally {
+                const approveBtn = document.getElementById('approveAllBtn');
+                approveBtn.disabled = false;
+                approveBtn.textContent = '✅ Approve All Pending';
+            }
+        }
+        
+        async function deleteAllPending() {
+            if (!confirm('Are you sure you want to delete ALL pending results? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const deleteBtn = document.getElementById('deleteAllPendingBtn');
+                deleteBtn.disabled = true;
+                deleteBtn.textContent = 'Deleting...';
+                
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = currentTeam 
+                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results` : `/api/${currentTeam}/pending-results`)
+                    : (isLocal ? `http://localhost:8080/api/pending-results` : `/api/pending-results`);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    // Reload results to hide the deleted pending results
+                    loadRecentResults(currentTeam, 0, false);
+                } else {
+                    alert(`❌ Error: ${data.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error deleting pending results:', error);
+                alert('❌ Failed to delete pending results. Please try again.');
+            } finally {
+                const deleteBtn = document.getElementById('deleteAllPendingBtn');
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = '🗑️ Delete All Pending';
+            }
+        }
+        
+        async function deletePendingResult(index) {
+            if (!confirm('Are you sure you want to delete this pending result?')) {
+                return;
+            }
+            
+            try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = currentTeam 
+                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results/${index}` : `/api/${currentTeam}/pending-results/${index}`)
+                    : (isLocal ? `http://localhost:8080/api/pending-results/${index}` : `/api/pending-results/${index}`);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    // Reload results to show updated pending results
+                    loadRecentResults(currentTeam, 0, false);
+                } else {
+                    alert(`❌ Error: ${data.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Error deleting pending result:', error);
+                alert('❌ Failed to delete pending result. Please try again.');
+            }
+        }
+    </script>
+    
+    <!-- Footer injection script -->
+    <script src="/footer.js"></script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Coming Soon - ELO Rating System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #4a5568 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 60px 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%234a5568" fill-opacity="0.1"><circle cx="30" cy="30" r="2"/></g></svg>') repeat;
+            opacity: 0.3;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #f7fafc;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            color: #a0aec0;
+            line-height: 1.5;
+        }
+
+        .description {
+            font-size: 1.1rem;
+            margin-bottom: 2.5rem;
+            color: #cbd5e0;
+            line-height: 1.6;
+        }
+
+        .pilot-section {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .pilot-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #f7fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .pilot-text {
+            font-size: 1rem;
+            color: #cbd5e0;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .email-container {
+            text-align: center;
+        }
+
+        .email-label {
+            font-size: 1rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .email-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: #f7fafc;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 0.5rem;
+            user-select: all;
+        }
+
+        .email-display:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            border-color: rgba(102, 126, 234, 0.5);
+            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+        }
+
+        .email-text {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .copy-icon {
+            font-size: 1.2rem;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .email-display:hover .copy-icon {
+            opacity: 1;
+        }
+
+        .copy-hint {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        .copy-success {
+            color: #68d391 !important;
+            font-weight: 600;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #a0aec0;
+            text-decoration: none;
+            margin-top: 2rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #cbd5e0;
+            text-decoration: none;
+            transform: translateX(-3px);
+        }
+
+        .features-preview {
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .features-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #f7fafc;
+            text-align: center;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            color: #cbd5e0;
+            font-size: 0.95rem;
+        }
+
+        .feature-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px;
+                padding: 40px 30px;
+            }
+            
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .pilot-section {
+                padding: 1.5rem;
+                margin: 1.5rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div class="logo">🏆</div>
+            <h1 class="title">Coming Soon!</h1>
+            <p class="subtitle">Transform your competitions into epic journeys</p>
+            
+            <p class="description">
+                We're putting the finishing touches on our comprehensive ELO rating platform. 
+                Soon you'll be able to create custom leagues, track player rankings, and turn any 
+                competition into an engaging, data-driven experience.
+            </p>
+
+            <div class="pilot-section">
+                <h2 class="pilot-title">
+                    🚀 Join Our Pilot Program
+                </h2>
+                <p class="pilot-text">
+                    Be among the first to experience our platform! We're selecting a limited number of early 
+                    adopters to help us refine the experience before our public launch.
+                </p>
+                <div class="email-container">
+                    <p class="email-label">Email Anthony to join:</p>
+                    <div class="email-display" onclick="copyEmail()" title="Click to copy email address">
+                        <span class="email-text">bouracha@tcd.ie</span>
+                        <span class="copy-icon">📋</span>
+                    </div>
+                    <p class="copy-hint" id="copyHint">Click email to copy to clipboard</p>
+                </div>
+            </div>
+
+            <div class="features-preview">
+                <h3 class="features-title">What's Coming</h3>
+                <ul class="features-list">
+                    <li>
+                        <span class="feature-icon">⚡</span>
+                        <span>Custom league creation with your branding</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon">📊</span>
+                        <span>Advanced analytics and performance insights</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon">🎯</span>
+                        <span>Multiple game support with tailored rating systems</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon">👥</span>
+                        <span>Team management and administrative controls</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon">📱</span>
+                        <span>Mobile-optimized experience for all devices</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon">🔄</span>
+                        <span>Real-time updates and live leaderboards</span>
+                    </li>
+                </ul>
+            </div>
+
+            <a href="/" class="back-link">
+                ← Back to Demo
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Copy email functionality
+        async function copyEmail() {
+            const email = 'bouracha@tcd.ie';
+            const copyHint = document.getElementById('copyHint');
+            
+            try {
+                await navigator.clipboard.writeText(email);
+                copyHint.textContent = '✅ Email copied to clipboard!';
+                copyHint.classList.add('copy-success');
+                
+                setTimeout(() => {
+                    copyHint.textContent = 'Click email to copy to clipboard';
+                    copyHint.classList.remove('copy-success');
+                }, 2000);
+            } catch (err) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = email;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                copyHint.textContent = '✅ Email copied to clipboard!';
+                copyHint.classList.add('copy-success');
+                
+                setTimeout(() => {
+                    copyHint.textContent = 'Click email to copy to clipboard';
+                    copyHint.classList.remove('copy-success');
+                }, 2000);
+            }
+        }
+
+        // Add subtle fade-in animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(20px)';
+            container.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            
+            setTimeout(() => {
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
+</html>

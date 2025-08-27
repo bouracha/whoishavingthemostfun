@@ -20,7 +20,7 @@ from datetime import timedelta
 sys.path.append(os.path.join(os.path.dirname(__file__), 'code'))
 
 # Import our existing functions
-from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts, calculate_elo_probability, add_comment_to_result, log_pending_result, approve_pending_results, delete_pending_result, clear_all_pending_results, format_comment_for_storage, add_admin_note_to_pending
+from update import make_new_player, delete_last_entry, undo_last_result, submit_game_with_charts, calculate_elo_probability, add_comment_to_result, log_pending_result, approve_pending_results, delete_pending_result, clear_all_pending_results, format_comment_for_storage, add_admin_note_to_pending, normalize_timestamp_to_minute
 
 app = Flask(__name__)
 # Secret key for sessions (override via env in production)
@@ -253,12 +253,27 @@ def add_player(game):
         if not player_name.replace('_', '').isalnum():
             return jsonify({'error': 'Player name can only contain letters, numbers, and underscores'}), 400
         
+        # Require estimated rating
+        estimated_rating = data.get('estimated_rating')
+        if estimated_rating is None:
+            return jsonify({'error': 'Estimated rating is required'}), 400
+        
+        try:
+            starting_rating = float(estimated_rating)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Estimated rating must be a valid number'}), 400
+        
+        if starting_rating > 3000:
+            return jsonify({'error': 'Come on! Be realistic!'}), 400
+        
+        if starting_rating < 700:
+            return jsonify({'error': 'Rating must be at least 700'}), 400
+        
         # Check if game directory exists, create if not
         game_dir = os.path.join(DATABASE_DIR, game)
         os.makedirs(game_dir, exist_ok=True)
         
-        # Optional backend-only overrides
-        starting_rating = float(data.get('starting_rating', 1200.0))
+        # Optional backend-only overrides (for admin/script use)
         starting_timestamp = data.get('starting_timestamp') or None
 
         # Use our existing function to create the player
@@ -292,12 +307,27 @@ def add_player_team(team, game):
         if not player_name.replace('_', '').isalnum():
             return jsonify({'error': 'Player name can only contain letters, numbers, and underscores'}), 400
 
+        # Require estimated rating
+        estimated_rating = data.get('estimated_rating')
+        if estimated_rating is None:
+            return jsonify({'error': 'Estimated rating is required'}), 400
+        
+        try:
+            starting_rating = float(estimated_rating)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Estimated rating must be a valid number'}), 400
+        
+        if starting_rating > 3000:
+            return jsonify({'error': 'Come on! Be realistic!'}), 400
+        
+        if starting_rating < 700:
+            return jsonify({'error': 'Rating must be at least 700'}), 400
+
         # Ensure directories
         team_game_dir = os.path.join(DATABASE_DIR, team, game)
         os.makedirs(team_game_dir, exist_ok=True)
 
-        # Optional backend-only overrides
-        starting_rating = float(data.get('starting_rating', 1200.0))
+        # Optional backend-only overrides (for admin/script use)
         starting_timestamp = data.get('starting_timestamp') or None
 
         # Use our existing function with team-awareness
@@ -663,7 +693,7 @@ def get_recent_results_main():
             # Format player names for display
             player1_display = format_player_name_for_display(row['player1'])
             player2_display = format_player_name_for_display(row['player2'])
-            timestamp_str = row['timestamp'].strftime('%Y-%m-%d %H:%M')
+            timestamp_str = normalize_timestamp_to_minute(row['timestamp'])
             probability = float(row['probability'])
             
             # Read persisted rating changes from results.csv (if present)
@@ -765,7 +795,7 @@ def get_recent_results(team):
             # Format player names for display
             player1_display = format_player_name_for_display(row['player1'])
             player2_display = format_player_name_for_display(row['player2'])
-            timestamp_str = row['timestamp'].strftime('%Y-%m-%d %H:%M')
+            timestamp_str = normalize_timestamp_to_minute(row['timestamp'])
             probability = float(row['probability'])
             
             # Read persisted rating changes from results.csv (if present)
@@ -1331,12 +1361,15 @@ def serve_login():
 
 @app.route('/t/<team>')
 def serve_team_home(team):
-    # For now, serve the same index; frontend can read team from path later
+    """Serve team-specific homepage with team data"""
     try:
         team = sanitize_team(team)
-    except ValueError:
-        pass
-    return send_from_directory(WEB_DIR, 'index.html')
+        assert_team_access(team)
+        
+        return send_from_directory(WEB_DIR, 'team.html')
+    except (ValueError, PermissionError):
+        # If not logged in or invalid team, redirect to login
+        return send_from_directory(WEB_DIR, 'login.html')
 
 
 @app.route('/t/<team>/<game>')

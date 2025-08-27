@@ -58,6 +58,11 @@
                 <label for="playerNameInput">Player Name:</label>
                 <input type="text" id="playerNameInput" placeholder="Enter player name" maxlength="20">
             </div>
+            <div class="form-group">
+                <label for="estimatedRatingInput">Estimated Rating:</label>
+                <input type="number" id="estimatedRatingInput" placeholder="e.g. 1200" min="700" max="3000" required>
+                <small style="color: #666; font-size: 12px;">Be realistic! (700-3000)</small>
+            </div>
             <div class="modal-buttons">
                 <button class="modal-btn cancel" onclick="closeAddPlayerModal()">Cancel</button>
                 <button class="modal-btn confirm" onclick="addPlayer()">Add Player</button>
@@ -274,9 +279,29 @@
             const config = gameConfig[gameType];
             const endpoints = getApiEndpoints();
             const playerName = document.getElementById('playerNameInput').value.trim();
+            const estimatedRating = document.getElementById('estimatedRatingInput').value.trim();
             
             if (!playerName) {
                 alert('Please enter a player name');
+                return;
+            }
+            
+            if (!estimatedRating) {
+                alert('Please enter an estimated rating');
+                return;
+            }
+            
+            const rating = parseInt(estimatedRating);
+            if (isNaN(rating)) {
+                alert('Please enter a valid rating number');
+                return;
+            }
+            if (rating > 3000) {
+                alert('Come on! Be realistic!');
+                return;
+            }
+            if (rating < 700) {
+                alert('Rating must be at least 700');
                 return;
             }
             
@@ -296,12 +321,18 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ player_name: playerName })
+                body: JSON.stringify({ 
+                    player_name: playerName,
+                    estimated_rating: rating
+                })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     alert(`Player "${playerName}" added successfully!`);
+                    // Clear form fields
+                    document.getElementById('playerNameInput').value = '';
+                    document.getElementById('estimatedRatingInput').value = '';
                     closeAddPlayerModal();
                     loadPlayers(); // Reload players
                     location.reload(); // Refresh page to update charts
@@ -788,7 +819,8 @@
                     },
                     showgrid: true,
                     gridcolor: 'rgba(0,0,0,0.1)',
-                    tickfont: { color: '#4a5568' }
+                    tickfont: { color: '#4a5568' },
+                    fixedrange: true
                 },
                 yaxis: { 
                     title: '',
@@ -796,7 +828,8 @@
                     showticklabels: false,  // Hide the y-axis labels completely
                     zeroline: false,
                     range: [-0.6, (data.players.length - 1) * 1.2 + 0.6], // Adjusted range for 1.2x spacing
-                    dtick: 1 // Ensure proper spacing between bars
+                    dtick: 1, // Ensure proper spacing between bars
+                    fixedrange: true
                 },
                 margin: { l: 50, r: 50, t: 80, b: 50 },
                 showlegend: false,
@@ -808,7 +841,8 @@
             const config = {
                 responsive: true,
                 displayModeBar: true,
-                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'],
+                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian', 'zoomIn2d', 'zoomOut2d', 'zoom2d', 'resetScale2d'],
+                scrollZoom: false,
                 displaylogo: false
             };
             
@@ -893,7 +927,8 @@
                     title: '',
                     showgrid: false,
                     showticklabels: false,  // Hide x-axis since bars are uniform
-                    zeroline: false
+                    zeroline: false,
+                    fixedrange: true
                 },
                 yaxis: { 
                     title: '',
@@ -901,7 +936,8 @@
                     showticklabels: false,
                     zeroline: false,
                     range: [-0.6, (data.players.length - 1) * 1.2 + 0.6], // Adjusted range for 1.2x spacing
-                    dtick: 1 // Ensure proper spacing between bars
+                    dtick: 1, // Ensure proper spacing between bars
+                    fixedrange: true
                 },
                 margin: { l: 50, r: 50, t: 80, b: 50 },
                 showlegend: false,
@@ -913,7 +949,8 @@
             const config = {
                 responsive: true,
                 displayModeBar: true,
-                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'],
+                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian', 'zoomIn2d', 'zoomOut2d', 'zoom2d', 'resetScale2d'],
+                scrollZoom: false,
                 displaylogo: false
             };
             
@@ -979,7 +1016,8 @@
             const config = {
                 responsive: true,
                 displayModeBar: true,
-                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'],
+                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian', 'zoomIn2d', 'zoomOut2d', 'zoom2d', 'resetScale2d'],
+                scrollZoom: false,
                 displaylogo: false
             };
             
@@ -1266,6 +1304,17 @@
                 }
             }, 250);
         });
+
+        // Modal functions
+        function closeAddPlayerModal() {
+            document.getElementById('addPlayerModal').style.display = 'none';
+            document.getElementById('playerNameInput').value = '';
+            document.getElementById('estimatedRatingInput').value = '';
+        }
+        
+        function closeAddResultModal() {
+            document.getElementById('addResultModal').style.display = 'none';
+        }
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', initializeGame);
