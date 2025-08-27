@@ -6,6 +6,45 @@ import os
 from typing import Optional
 
 
+def normalize_timestamp_to_minute(timestamp_str: str) -> str:
+    """
+    Normalize a timestamp string to minute precision for comparison.
+    Handles various timestamp formats and truncates to YYYY-MM-DD HH:MM format.
+    
+    Args:
+        timestamp_str: Timestamp string in various formats
+        
+    Returns:
+        Normalized timestamp string in YYYY-MM-DD HH:MM format
+    """
+    try:
+        # Handle pandas Timestamp objects
+        if hasattr(timestamp_str, 'strftime'):
+            return timestamp_str.strftime('%Y-%m-%d %H:%M')
+        
+        # Handle string timestamps
+        ts_str = str(timestamp_str).strip()
+        
+        # Parse different formats
+        if '.' in ts_str:
+            # Format with microseconds: 2023-12-07 14:30:25.123456
+            dt = datetime.strptime(ts_str, '%Y-%m-%d %H:%M:%S.%f')
+        elif len(ts_str) == 19:
+            # Format with seconds: 2023-12-07 14:30:25
+            dt = datetime.strptime(ts_str, '%Y-%m-%d %H:%M:%S')
+        elif len(ts_str) == 16:
+            # Already minute format: 2023-12-07 14:30
+            return ts_str
+        else:
+            # Try pandas parsing as fallback
+            dt = pd.to_datetime(ts_str)
+            
+        return dt.strftime('%Y-%m-%d %H:%M')
+    except (ValueError, TypeError):
+        # Return original string if parsing fails
+        return str(timestamp_str)
+
+
 def calculate_elo_probability(rating_a: float, rating_b: float) -> float:
     """
     Calculate the probability that player A beats player B based on ELO ratings.
@@ -1172,9 +1211,11 @@ def add_comment_to_result(timestamp=None, comment=None, commenter_name=None, tea
         # For backward compatibility, also validate timestamp if provided
         if timestamp:
             actual_timestamp = df.iloc[row_index]['timestamp']
-            # Check if the provided timestamp matches the start of the actual timestamp
-            if not str(actual_timestamp).startswith(timestamp):
-                return {'error': f'Timestamp mismatch at position offset={offset}, index={index}. Expected to start with "{timestamp}", but found "{actual_timestamp}"'}
+            # Normalize both timestamps to minute precision for comparison
+            normalized_provided = normalize_timestamp_to_minute(timestamp)
+            normalized_actual = normalize_timestamp_to_minute(actual_timestamp)
+            if normalized_provided != normalized_actual:
+                return {'error': f'Timestamp mismatch at position offset={offset}, index={index}. Expected "{normalized_provided}", but found "{normalized_actual}"'}
         
         # Get existing comments (handle both empty and populated cases)
         existing_comments = df.at[row_index, 'comments']

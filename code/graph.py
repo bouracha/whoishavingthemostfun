@@ -89,20 +89,15 @@ def plot_rating(filepath, label):
         times = []
         ratings = game_data['rating'].values
         
-        # Convert timestamp strings to datetime objects
+        # Convert timestamp strings to datetime objects using pandas for robust parsing
         for timestamp_str in game_data['timestamp']:
             if timestamp_str == 'beginning of time':
                 continue
             try:
-                # Try different timestamp formats
-                if '.' in timestamp_str:
-                    # Format with microseconds: 2023-12-07 14:30:25.123456
-                    dt = datetime.datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S.%f')
-                else:
-                    # Format without microseconds: 2023-12-07 14:30:25
-                    dt = datetime.datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
-                times.append(dt)
-            except ValueError as e:
+                # Use pandas to_datetime which handles mixed formats robustly
+                dt = pd.to_datetime(timestamp_str, format='mixed')
+                times.append(dt.to_pydatetime())
+            except (ValueError, TypeError) as e:
                 print(f"Warning: Could not parse timestamp '{timestamp_str}': {e}")
                 continue
         
