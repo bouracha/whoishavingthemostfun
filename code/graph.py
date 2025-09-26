@@ -44,9 +44,10 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating, curre
         
         if bucket_ratings:
             if is_final_bucket:
-                # For the final bucket, use the actual current rating
+                # For the final bucket, use the actual current rating as the mean
+                # but still calculate the range from the games in this bucket
                 mean_rating = current_rating
-                rating_range = 0  # No range for final point - it's a precise rating
+                rating_range = np.max(bucket_ratings) - np.min(bucket_ratings) if len(bucket_ratings) > 1 else 0
             else:
                 # For other buckets, use the average
                 mean_rating = np.mean(bucket_ratings)
@@ -57,7 +58,7 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating, curre
                 if is_final_bucket:
                     # For final bucket with no data, use current rating
                     mean_rating = current_rating
-                    rating_range = 0  # No range for final point
+                    rating_range = 0  # No games in this bucket, so no range
                 else:
                     mean_rating = bucket_means[-1]
                     rating_range = 0
