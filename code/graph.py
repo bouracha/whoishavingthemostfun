@@ -18,14 +18,15 @@ def get_middle_rating(times, ratings):
 def bucket_player_data(times, ratings, bucket_boundaries, starting_rating, current_rating):
     """
     Bucket player data into time intervals and compute statistics.
-    Returns bucket centers, means, and ranges.
+    Returns bucket centers, means, upper errors, and lower errors.
     Ensures the final point shows the actual current rating.
     """
     if not times:
-        return [], [], []
-    
+        return [], [], [], []
+
     bucket_means = []
-    bucket_ranges = []
+    bucket_upper_errors = []
+    bucket_lower_errors = []
     bucket_centers = []
     
     for i in range(len(bucket_boundaries) - 1):
@@ -45,32 +46,47 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating, curre
         if bucket_ratings:
             if is_final_bucket:
                 # For the final bucket, use the actual current rating as the mean
-                # but still calculate the range from the games in this bucket
+                # but still calculate the errors from the games in this bucket
                 mean_rating = current_rating
-                rating_range = np.max(bucket_ratings) - np.min(bucket_ratings) if len(bucket_ratings) > 1 else 0
+                if len(bucket_ratings) > 0:
+                    max_rating = np.max(bucket_ratings)
+                    min_rating = np.min(bucket_ratings)
+                    # Ensure errors are non-negative (current rating might be outside the bucket range)
+                    upper_error = max(0, max_rating - mean_rating)
+                    lower_error = max(0, mean_rating - min_rating)
+                else:
+                    upper_error = 0
+                    lower_error = 0
             else:
                 # For other buckets, use the average
                 mean_rating = np.mean(bucket_ratings)
-                rating_range = np.max(bucket_ratings) - np.min(bucket_ratings)
+                max_rating = np.max(bucket_ratings)
+                min_rating = np.min(bucket_ratings)
+                upper_error = max_rating - mean_rating
+                lower_error = mean_rating - min_rating
         else:
             # Use previous bucket's mean or starting rating
             if bucket_means:
                 if is_final_bucket:
                     # For final bucket with no data, use current rating
                     mean_rating = current_rating
-                    rating_range = 0  # No games in this bucket, so no range
+                    upper_error = 0  # No games in this bucket
+                    lower_error = 0
                 else:
                     mean_rating = bucket_means[-1]
-                    rating_range = 0
+                    upper_error = 0
+                    lower_error = 0
             else:
                 mean_rating = starting_rating
-                rating_range = 0
-        
+                upper_error = 0
+                lower_error = 0
+
         bucket_centers.append(bucket_center)
         bucket_means.append(mean_rating)
-        bucket_ranges.append(rating_range)
+        bucket_upper_errors.append(upper_error)
+        bucket_lower_errors.append(lower_error)
     
-    return bucket_centers, bucket_means, bucket_ranges
+    return bucket_centers, bucket_means, bucket_upper_errors, bucket_lower_errors
 
 def plot_rating(filepath, label):
     """Load and return rating data from a CSV file"""
@@ -179,25 +195,26 @@ def create_ratings_progress_json(csv_files):
     for label, (times, ratings, starting_rating, current_rating) in player_data.items():
         if times:  # Player has games
             # Bucket the player's data
-            bucket_centers, bucket_means, bucket_ranges = bucket_player_data(
+            bucket_centers, bucket_means, bucket_upper_errors, bucket_lower_errors = bucket_player_data(
                 times, ratings, bucket_boundaries, starting_rating, current_rating
             )
-            
+
             if bucket_centers:
                 color = colors[player_index % len(colors)]
-                
+
                 # Format player name
                 player_name = label.split('/')[-1] if '/' in label else label
                 display_name = player_name.replace('_', ' ').title()
                 display_name = display_name.replace(' Q', ' (-♛)')
-                
+
                 # Check if player is inactive
                 is_inactive = times[-1] != last_game_time
-                
+
                 # Convert times to ISO strings for JSON serialization
                 x_data = [t.isoformat() for t in bucket_centers]
                 y_data = [int(rating) for rating in bucket_means]  # Floor round all chart data
-                range_data = [int(r) for r in bucket_ranges]  # Floor round range data
+                upper_error_data = [int(e) for e in bucket_upper_errors]  # Floor round upper errors
+                lower_error_data = [int(e) for e in bucket_lower_errors]  # Floor round lower errors
                 
                 # Use the actual current rating from the CSV file
                 # current_rating is already passed from plot_rating function
@@ -207,7 +224,8 @@ def create_ratings_progress_json(csv_files):
                     'player': player_name,
                     'x': x_data,
                     'y': y_data,
-                    'ranges': range_data,
+                    'upper_errors': upper_error_data,
+                    'lower_errors': lower_error_data,
                     'color': color,
                     'current_rating': int(current_rating),
                     'starting_rating': int(starting_rating),  # Floor round starting rating

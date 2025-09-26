@@ -966,7 +966,8 @@
                 y: player.y,  // Use 'y' instead of 'ratings'
                 error_y: {
                     type: 'data',
-                    array: player.ranges.map(r => r / 2), // Convert range to half-range for error bars
+                    array: player.upper_errors || player.ranges?.map(r => r / 2) || [],  // Upper error (above mean)
+                    arrayminus: player.lower_errors || player.ranges?.map(r => r / 2) || [],  // Lower error (below mean)
                     visible: true,
                     color: player.color,
                     thickness: 2,
@@ -974,11 +975,11 @@
                 },
                 mode: 'lines+markers',
                 name: player.name,  // Use 'name' instead of 'display_name'
-                line: { 
+                line: {
                     width: 3,
                     color: player.color
                 },
-                marker: { 
+                marker: {
                     size: 6,
                     color: player.color
                 },
