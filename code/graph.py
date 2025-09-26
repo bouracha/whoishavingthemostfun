@@ -24,11 +24,26 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating, curre
     if not times:
         return [], [], [], []
 
+    # First pass: identify which buckets have games
+    buckets_with_games = []
+    for i in range(len(bucket_boundaries) - 1):
+        start_time = bucket_boundaries[i]
+        end_time = bucket_boundaries[i + 1]
+        has_games = any(start_time <= t < end_time for t in times)
+        buckets_with_games.append(has_games)
+
+    # Find the last bucket that has games
+    last_bucket_with_games = -1
+    for i in range(len(buckets_with_games) - 1, -1, -1):
+        if buckets_with_games[i]:
+            last_bucket_with_games = i
+            break
+
     bucket_means = []
     bucket_upper_errors = []
     bucket_lower_errors = []
     bucket_centers = []
-    
+
     for i in range(len(bucket_boundaries) - 1):
         start_time = bucket_boundaries[i]
         end_time = bucket_boundaries[i + 1]
@@ -42,7 +57,7 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating, curre
         for t, r in zip(times, ratings):
             if start_time <= t < end_time:
                 bucket_ratings.append(r)
-        
+
         if bucket_ratings:
             if is_final_bucket:
                 # For the final bucket, use the actual current rating as the mean
@@ -65,14 +80,22 @@ def bucket_player_data(times, ratings, bucket_boundaries, starting_rating, curre
                 upper_error = max_rating - mean_rating
                 lower_error = mean_rating - min_rating
         else:
-            # Use previous bucket's mean or starting rating
+            # No games in this bucket
             if bucket_means:
-                if is_final_bucket:
+                # Check if we're past the last bucket with actual games
+                if i > last_bucket_with_games and last_bucket_with_games != -1:
+                    # For all empty buckets after the last game, use current rating
+                    # This prevents discontinuity for inactive players
+                    mean_rating = current_rating
+                    upper_error = 0
+                    lower_error = 0
+                elif is_final_bucket:
                     # For final bucket with no data, use current rating
                     mean_rating = current_rating
                     upper_error = 0  # No games in this bucket
                     lower_error = 0
                 else:
+                    # For empty buckets before/during active play, use previous bucket's mean
                     mean_rating = bucket_means[-1]
                     upper_error = 0
                     lower_error = 0
