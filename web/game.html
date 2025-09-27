@@ -45,7 +45,6 @@
             <div id="bookmakerOddsSection" style="margin-top: 40px;">
                 <div id="bookmakerHeader">
                     <h3>💰 Bookmaker Odds</h3>
-                    <p class="odds-description">UK fractional odds with 5% margin for all matchups</p>
                     <button id="toggleOddsButton" class="toggle-odds-btn" onclick="toggleBookmakerOdds()">Show Odds</button>
                 </div>
                 <div id="bookmakerOddsContainer" style="display: none;">
@@ -716,15 +715,6 @@
                 tableHTML += `<td class="odds-cell dnb">${formatOdds(odds.draw_no_bet['1'])}</td>`;
                 tableHTML += `<td class="odds-cell dnb">${formatOdds(odds.draw_no_bet['2'])}</td>`;
 
-                tableHTML += '</tr>';
-
-                // Add probabilities row
-                tableHTML += '<tr class="prob-row">';
-                tableHTML += '<td class="prob-label">Implied %:</td>';
-                tableHTML += `<td class="prob-cell">${odds.probabilities.a_wins}%</td>`;
-                tableHTML += `<td class="prob-cell">${odds.probabilities.draw}%</td>`;
-                tableHTML += `<td class="prob-cell">${odds.probabilities.b_wins}%</td>`;
-                tableHTML += '<td colspan="5" class="prob-spacer"></td>';
                 tableHTML += '</tr>';
             });
             tableHTML += '</tbody>';

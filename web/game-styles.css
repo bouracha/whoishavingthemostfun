@@ -946,12 +946,6 @@ img {
     margin-bottom: 5px;
 }
 
-.odds-description {
-    color: #666;
-    font-style: italic;
-    margin-bottom: 15px;
-}
-
 .toggle-odds-btn {
     padding: 8px 20px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1126,32 +1120,6 @@ img {
 .odds-na {
     color: #999;
     font-style: italic;
-}
-
-/* Probability Row */
-.prob-row {
-    background: #fff3e0 !important;
-    border-top: 2px solid #ff9800;
-}
-
-.prob-label {
-    padding: 8px;
-    font-weight: bold;
-    color: #e65100;
-    border: 1px solid #dee2e6;
-}
-
-.prob-cell {
-    padding: 8px;
-    text-align: center;
-    color: #e65100;
-    font-weight: 600;
-    border: 1px solid #dee2e6;
-}
-
-.prob-spacer {
-    border: 1px solid #dee2e6;
-    background: #fff3e0;
 }
 
 /* Responsive Design for Odds Table */
