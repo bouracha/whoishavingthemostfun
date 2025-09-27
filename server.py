@@ -1449,9 +1449,7 @@ def get_available_games():
                 'id': game,
                 'name': metadata.get('name', game.replace('_', ' ').title()),
                 'emoji': metadata.get('emoji', defaults.get('emoji', '🎮')),
-                'description': metadata.get('description', defaults.get('description', 'Rating system game')),
-                'leaderboardImage': f'{game}_leaderboard.png',
-                'ratingsImage': f'{game}_ratings_progress.png'
+                'description': metadata.get('description', defaults.get('description', 'Rating system game'))
             })
         
         return jsonify({'games': games_with_metadata})
@@ -1528,6 +1526,113 @@ def undo_last_result_team(team):
             'error': f'Server error: {str(e)}'
         }), 500
 
+def calculate_bookmaker_odds(prob_a_wins: float, prob_b_wins: float, k: float = 0.1053) -> dict:
+    """
+    Calculate bookmaker odds from head-to-head probabilities.
+
+    Args:
+        prob_a_wins: Probability that player A beats player B (0.0 to 1.0)
+        prob_b_wins: Probability that player B beats player A (0.0 to 1.0)
+        k: Draw probability factor (default 0.1053 for ~5% draw at even match)
+
+    Returns:
+        Dict with odds for various betting markets in UK fractional format
+    """
+    import math
+
+    # Step 2: Add draw probability
+    p_draw_raw = k * math.sqrt(prob_a_wins * prob_b_wins)
+
+    # Step 3: Renormalize probabilities
+    total = prob_a_wins + prob_b_wins + p_draw_raw
+    p_a = prob_a_wins / total
+    p_b = prob_b_wins / total
+    p_draw = p_draw_raw / total
+
+    # Step 4: Add bookmaker margin (5% vig)
+    margin = 0.05
+
+    # Calculate decimal odds with margin
+    decimal_a = 1 / (p_a * (1 - margin))
+    decimal_b = 1 / (p_b * (1 - margin))
+    decimal_draw = 1 / (p_draw * (1 - margin))
+
+    # Double Chance probabilities
+    p_a_or_draw = p_a + p_draw
+    p_no_draw = p_a + p_b
+    p_b_or_draw = p_b + p_draw
+
+    decimal_a_or_draw = 1 / (p_a_or_draw * (1 - margin))
+    decimal_no_draw = 1 / (p_no_draw * (1 - margin))
+    decimal_b_or_draw = 1 / (p_b_or_draw * (1 - margin))
+
+    # Draw No Bet probabilities
+    p_a_dnb = p_a / (1 - p_draw) if p_draw < 1 else 0
+    p_b_dnb = p_b / (1 - p_draw) if p_draw < 1 else 0
+
+    decimal_a_dnb = 1 / (p_a_dnb * (1 - margin)) if p_a_dnb > 0 else float('inf')
+    decimal_b_dnb = 1 / (p_b_dnb * (1 - margin)) if p_b_dnb > 0 else float('inf')
+
+    # Step 5: Convert decimal to fractional odds
+    def decimal_to_fractional(decimal_odds):
+        """Convert decimal odds to UK fractional format"""
+        if decimal_odds == float('inf'):
+            return "N/A"
+
+        # Standard UK odds ladder
+        ladder = [
+            (1.10, "1/10"), (1.125, "1/8"), (1.167, "1/6"), (1.20, "1/5"),
+            (1.25, "1/4"), (1.333, "1/3"), (1.40, "2/5"), (1.444, "4/9"),
+            (1.50, "1/2"), (1.533, "8/15"), (1.571, "4/7"), (1.615, "8/13"),
+            (1.667, "4/6"), (1.727, "8/11"), (1.80, "4/5"), (1.833, "5/6"),
+            (1.909, "10/11"), (2.00, "EVS"), (2.10, "11/10"), (2.20, "6/5"),
+            (2.25, "5/4"), (2.375, "11/8"), (2.50, "6/4"), (2.75, "7/4"),
+            (3.00, "2/1"), (3.25, "9/4"), (3.50, "5/2"), (4.00, "3/1"),
+            (4.50, "7/2"), (5.00, "4/1"), (6.00, "5/1"), (7.00, "6/1"),
+            (9.00, "8/1"), (11.00, "10/1"), (13.00, "12/1"), (15.00, "14/1"),
+            (17.00, "16/1"), (21.00, "20/1"), (26.00, "25/1"), (34.00, "33/1"),
+            (41.00, "40/1"), (51.00, "50/1"), (67.00, "66/1"), (81.00, "80/1"),
+            (101.00, "100/1")
+        ]
+
+        # Find nearest ladder value
+        best_diff = float('inf')
+        best_odds = "EVS"
+
+        for ladder_decimal, ladder_frac in ladder:
+            diff = abs(decimal_odds - ladder_decimal)
+            if diff < best_diff:
+                best_diff = diff
+                best_odds = ladder_frac
+
+        # Handle very high odds
+        if decimal_odds > 100:
+            return f"{int(decimal_odds - 1)}/1"
+
+        return best_odds
+
+    return {
+        "three_way": {
+            "1": decimal_to_fractional(decimal_a),      # A wins
+            "X": decimal_to_fractional(decimal_draw),    # Draw
+            "2": decimal_to_fractional(decimal_b)        # B wins
+        },
+        "double_chance": {
+            "1X": decimal_to_fractional(decimal_a_or_draw),  # A or Draw
+            "12": decimal_to_fractional(decimal_no_draw),    # No Draw
+            "X2": decimal_to_fractional(decimal_b_or_draw)   # B or Draw
+        },
+        "draw_no_bet": {
+            "1": decimal_to_fractional(decimal_a_dnb),  # A wins (void if draw)
+            "2": decimal_to_fractional(decimal_b_dnb)   # B wins (void if draw)
+        },
+        "probabilities": {
+            "a_wins": round(p_a * 100, 1),
+            "draw": round(p_draw * 100, 1),
+            "b_wins": round(p_b * 100, 1)
+        }
+    }
+
 def get_probability_matrix(game: str, team: str = None) -> dict:
     """
     Generate a cross-table showing win probabilities between all players.
@@ -1585,12 +1690,29 @@ def get_probability_matrix(game: str, team: str = None) -> dict:
                     probability = round(probability, 3)  # Round to 3 decimal places
                 row.append(probability)
             matrix.append(row)
-        
+
+        # Calculate bookmaker odds for all matchups
+        odds_data = {}
+        for i, player_a in enumerate(players):
+            for j, player_b in enumerate(players):
+                if i < j:  # Only calculate once for each pair
+                    prob_a = calculate_elo_probability(ratings[player_a], ratings[player_b])
+                    prob_b = 1 - prob_a
+
+                    odds = calculate_bookmaker_odds(prob_a, prob_b)
+                    matchup_key = f"{player_a}_vs_{player_b}"
+                    odds_data[matchup_key] = {
+                        "player_a": player_a,
+                        "player_b": player_b,
+                        "odds": odds
+                    }
+
         return {
             "players": players,
             "ratings": ratings,
             "matrix": matrix,
-            "game": game
+            "game": game,
+            "odds": odds_data
         }
     
     except Exception as e:

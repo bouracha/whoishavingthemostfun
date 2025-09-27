@@ -929,4 +929,282 @@ img {
     font-style: italic;
 }
 
+/* Bookmaker Odds Styles */
+#bookmakerOddsSection {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 2px solid #e9ecef;
+}
+
+#bookmakerHeader {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#bookmakerHeader h3 {
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.odds-description {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 15px;
+}
+
+.toggle-odds-btn {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.toggle-odds-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.toggle-odds-btn.active {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Odds Table Container */
+.odds-table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin: 0 auto;
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Custom scrollbar for odds table */
+.odds-table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.odds-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.odds-table-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.odds-table-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Bookmaker Odds Table */
+.bookmaker-odds-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    min-width: 800px;
+}
+
+.bookmaker-odds-table thead {
+    background: #f8f9fa;
+}
+
+.bookmaker-odds-table th {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    font-weight: bold;
+}
+
+.match-header {
+    background: #495057 !important;
+    color: white;
+    min-width: 200px;
+}
+
+.market-header {
+    background: #6c757d !important;
+    color: white;
+    font-size: 14px;
+}
+
+.sub-header {
+    background: #e9ecef !important;
+    color: #333;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sub-header small {
+    display: block;
+    font-size: 10px;
+    font-weight: normal;
+    color: #666;
+}
+
+/* Odds Table Body */
+.bookmaker-odds-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.odds-row:hover {
+    background-color: #f8f9fa;
+}
+
+.match-cell {
+    padding: 12px;
+    font-weight: bold;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.player-a, .player-b {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.player-a {
+    background: #e7f5ff;
+    color: #1864ab;
+}
+
+.player-b {
+    background: #fff5f5;
+    color: #c92a2a;
+}
+
+.vs-text {
+    margin: 0 8px;
+    color: #666;
+    font-size: 12px;
+}
+
+/* Odds Cells */
+.odds-cell {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.odds-cell.three-way {
+    background: #fff;
+}
+
+.odds-cell.double-chance {
+    background: #f8f9fa;
+}
+
+.odds-cell.dnb {
+    background: #e9ecef;
+}
+
+/* Odds Value Styling */
+.odds-favorite {
+    color: #2e7d32;
+    font-weight: bold;
+}
+
+.odds-normal {
+    color: #333;
+}
+
+.odds-underdog {
+    color: #d32f2f;
+}
+
+.odds-evs {
+    color: #f57c00;
+    font-weight: bold;
+}
+
+.odds-na {
+    color: #999;
+    font-style: italic;
+}
+
+/* Probability Row */
+.prob-row {
+    background: #fff3e0 !important;
+    border-top: 2px solid #ff9800;
+}
+
+.prob-label {
+    padding: 8px;
+    font-weight: bold;
+    color: #e65100;
+    border: 1px solid #dee2e6;
+}
+
+.prob-cell {
+    padding: 8px;
+    text-align: center;
+    color: #e65100;
+    font-weight: 600;
+    border: 1px solid #dee2e6;
+}
+
+.prob-spacer {
+    border: 1px solid #dee2e6;
+    background: #fff3e0;
+}
+
+/* Responsive Design for Odds Table */
+@media (max-width: 768px) {
+    .bookmaker-odds-table {
+        font-size: 12px;
+        min-width: 700px;
+    }
+
+    .match-cell {
+        font-size: 12px;
+        padding: 8px;
+    }
+
+    .odds-cell {
+        font-size: 12px;
+        padding: 6px;
+    }
+
+    .sub-header {
+        font-size: 11px;
+    }
+
+    .sub-header small {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 480px) {
+    .bookmaker-odds-table {
+        font-size: 11px;
+        min-width: 600px;
+    }
+
+    .match-cell {
+        font-size: 11px;
+        padding: 6px;
+    }
+
+    .odds-cell {
+        font-size: 11px;
+        padding: 4px;
+    }
+
+    .player-a, .player-b {
+        display: block;
+        margin: 2px 0;
+    }
+
+    .vs-text {
+        display: block;
+        margin: 4px 0;
+    }
+}
+
 

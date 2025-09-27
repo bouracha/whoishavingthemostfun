@@ -26,10 +26,6 @@
                 <button class="button" onclick="showProbabilityMatrix()">🎯 Head-to-Head</button>
             </div>
         </div>
-        
-        <div id="imageContainer">
-            <img id="displayImage" src="" alt="Game Leaderboard">
-        </div>
 
         <!-- Interactive Chart Containers -->
         <div id="leaderboardChart" style="display: none; width: 100%; height: 1000px; position: relative;">
@@ -44,6 +40,18 @@
                 <p class="matrix-description">Win probability for each player matchup (row player vs column player)</p>
             </div>
             <div id="probabilityTable"></div>
+
+            <!-- Bookmaker Odds Section -->
+            <div id="bookmakerOddsSection" style="margin-top: 40px;">
+                <div id="bookmakerHeader">
+                    <h3>💰 Bookmaker Odds</h3>
+                    <p class="odds-description">UK fractional odds with 5% margin for all matchups</p>
+                    <button id="toggleOddsButton" class="toggle-odds-btn" onclick="toggleBookmakerOdds()">Show Odds</button>
+                </div>
+                <div id="bookmakerOddsContainer" style="display: none;">
+                    <div id="bookmakerOdds"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -193,9 +201,9 @@
                 console.error('Error loading game config:', error);
                 // Fallback to basic config if API fails
                 gameConfig = {
-                    chess: { name: 'Chess', emoji: '♔', leaderboardImage: 'chess_leaderboard.png', ratingsImage: 'chess_ratings_progress.png' },
-                    pingpong: { name: 'Ping Pong', emoji: '🏓', leaderboardImage: 'pingpong_leaderboard.png', ratingsImage: 'pingpong_ratings_progress.png' },
-                    backgammon: { name: 'Backgammon', emoji: '🎲', leaderboardImage: 'backgammon_leaderboard.png', ratingsImage: 'backgammon_ratings_progress.png' }
+                    chess: { name: 'Chess', emoji: '♔' },
+                    pingpong: { name: 'Ping Pong', emoji: '🏓' },
+                    backgammon: { name: 'Backgammon', emoji: '🎲' }
                 };
             }
         }
@@ -226,7 +234,6 @@
             document.getElementById('addResultTitle').textContent = `Add ${config.name} Game Result`;
             
             // Set initial display to interactive leaderboard
-            document.getElementById('imageContainer').style.display = 'none';
             document.getElementById('leaderboardChart').style.display = 'block';
             document.getElementById('ratingsProgressChart').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'none';
@@ -440,9 +447,8 @@
             const gameType = getGameType();
             const config = gameConfig[gameType];
             const team = getTeam();
-            
+
             // Hide other containers
-            document.getElementById('imageContainer').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'none';
             document.getElementById('ratingsProgressChart').style.display = 'none';
             
@@ -461,9 +467,8 @@
             const gameType = getGameType();
             const config = gameConfig[gameType];
             const team = getTeam();
-            
+
             // Hide other containers
-            document.getElementById('imageContainer').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'none';
             document.getElementById('leaderboardChart').style.display = 'none';
             
@@ -486,7 +491,6 @@
             const team = getTeam();
             
             // Hide all chart containers, show probability container
-            document.getElementById('imageContainer').style.display = 'none';
             document.getElementById('leaderboardChart').style.display = 'none';
             document.getElementById('ratingsProgressChart').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'block';
@@ -525,6 +529,12 @@
                     }
                     
                     renderProbabilityTable(data);
+
+                    // Store odds data globally and render if available
+                    if (data.odds) {
+                        window.bookmakerOddsData = data.odds;
+                        renderBookmakerOdds(data.odds);
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading probability matrix:', error);
@@ -638,6 +648,131 @@
                     });
                 });
             });
+        }
+
+        // Bookmaker Odds Functions
+        function renderBookmakerOdds(oddsData) {
+            const formatPlayerName = (name) => {
+                return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(' Q', ' (-♛)');
+            };
+
+            // Convert the odds object into an array for easier processing
+            const matchups = Object.values(oddsData);
+
+            if (matchups.length === 0) {
+                document.getElementById('bookmakerOdds').innerHTML = '<div class="error">No odds data available</div>';
+                return;
+            }
+
+            // Create the odds table
+            let tableHTML = '<div class="odds-table-container">';
+            tableHTML += '<table class="bookmaker-odds-table">';
+
+            // Header
+            tableHTML += '<thead>';
+            tableHTML += '<tr>';
+            tableHTML += '<th rowspan="2" class="match-header">Match</th>';
+            tableHTML += '<th colspan="3" class="market-header">3-Way (1X2)</th>';
+            tableHTML += '<th colspan="3" class="market-header">Double Chance</th>';
+            tableHTML += '<th colspan="2" class="market-header">Draw No Bet</th>';
+            tableHTML += '</tr>';
+            tableHTML += '<tr>';
+            tableHTML += '<th class="sub-header">1<br><small>Home</small></th>';
+            tableHTML += '<th class="sub-header">X<br><small>Draw</small></th>';
+            tableHTML += '<th class="sub-header">2<br><small>Away</small></th>';
+            tableHTML += '<th class="sub-header">1X<br><small>Home/Draw</small></th>';
+            tableHTML += '<th class="sub-header">12<br><small>No Draw</small></th>';
+            tableHTML += '<th class="sub-header">X2<br><small>Draw/Away</small></th>';
+            tableHTML += '<th class="sub-header">DNB 1<br><small>Home</small></th>';
+            tableHTML += '<th class="sub-header">DNB 2<br><small>Away</small></th>';
+            tableHTML += '</tr>';
+            tableHTML += '</thead>';
+
+            // Body
+            tableHTML += '<tbody>';
+            matchups.forEach(matchup => {
+                const { player_a, player_b, odds } = matchup;
+                const playerAName = formatPlayerName(player_a);
+                const playerBName = formatPlayerName(player_b);
+
+                tableHTML += '<tr class="odds-row">';
+                tableHTML += `<td class="match-cell">
+                    <span class="player-a">${playerAName}</span>
+                    <span class="vs-text">vs</span>
+                    <span class="player-b">${playerBName}</span>
+                </td>`;
+
+                // 3-Way odds
+                tableHTML += `<td class="odds-cell three-way">${formatOdds(odds.three_way['1'])}</td>`;
+                tableHTML += `<td class="odds-cell three-way">${formatOdds(odds.three_way['X'])}</td>`;
+                tableHTML += `<td class="odds-cell three-way">${formatOdds(odds.three_way['2'])}</td>`;
+
+                // Double Chance odds
+                tableHTML += `<td class="odds-cell double-chance">${formatOdds(odds.double_chance['1X'])}</td>`;
+                tableHTML += `<td class="odds-cell double-chance">${formatOdds(odds.double_chance['12'])}</td>`;
+                tableHTML += `<td class="odds-cell double-chance">${formatOdds(odds.double_chance['X2'])}</td>`;
+
+                // Draw No Bet odds
+                tableHTML += `<td class="odds-cell dnb">${formatOdds(odds.draw_no_bet['1'])}</td>`;
+                tableHTML += `<td class="odds-cell dnb">${formatOdds(odds.draw_no_bet['2'])}</td>`;
+
+                tableHTML += '</tr>';
+
+                // Add probabilities row
+                tableHTML += '<tr class="prob-row">';
+                tableHTML += '<td class="prob-label">Implied %:</td>';
+                tableHTML += `<td class="prob-cell">${odds.probabilities.a_wins}%</td>`;
+                tableHTML += `<td class="prob-cell">${odds.probabilities.draw}%</td>`;
+                tableHTML += `<td class="prob-cell">${odds.probabilities.b_wins}%</td>`;
+                tableHTML += '<td colspan="5" class="prob-spacer"></td>';
+                tableHTML += '</tr>';
+            });
+            tableHTML += '</tbody>';
+            tableHTML += '</table>';
+            tableHTML += '</div>';
+
+            document.getElementById('bookmakerOdds').innerHTML = tableHTML;
+        }
+
+        function formatOdds(odds) {
+            // Add styling based on odds value
+            if (odds === "EVS") {
+                return '<span class="odds-evs">EVS</span>';
+            }
+            if (odds === "N/A") {
+                return '<span class="odds-na">N/A</span>';
+            }
+
+            // Parse odds to determine if favorite
+            const parts = odds.split('/');
+            if (parts.length === 2) {
+                const numerator = parseFloat(parts[0]);
+                const denominator = parseFloat(parts[1]);
+                const decimal = 1 + (numerator / denominator);
+
+                if (decimal < 1.5) {
+                    return `<span class="odds-favorite">${odds}</span>`;
+                } else if (decimal > 3) {
+                    return `<span class="odds-underdog">${odds}</span>`;
+                }
+            }
+
+            return `<span class="odds-normal">${odds}</span>`;
+        }
+
+        function toggleBookmakerOdds() {
+            const container = document.getElementById('bookmakerOddsContainer');
+            const button = document.getElementById('toggleOddsButton');
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                button.textContent = 'Hide Odds';
+                button.classList.add('active');
+            } else {
+                container.style.display = 'none';
+                button.textContent = 'Show Odds';
+                button.classList.remove('active');
+            }
         }
 
         // Interactive chart loading functions
