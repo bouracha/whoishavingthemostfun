@@ -904,32 +904,29 @@
                 hoverinfo: 'skip'
             };
 
-            // Player names (center-left, adjusted for images)
+            // Player names with games played (center-left, adjusted for images)
             const nameTrace = {
                 x: data.players.map(p => p.rating * 0.50), // Center position with more space from medals
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
                 text: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
-                    return name;
+                    const games = p.games_played || 0;
+                    return `${name} (${games} played)`;
                 }),
                 mode: 'text',
-                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textfont: { size: 20, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
             };
 
-            // Ratings and games count (right side)
+            // Ratings (right side)
             const ratingTrace = {
                 x: data.players.map(p => p.rating * 0.9), // 90% from left edge
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
-                text: data.players.map(p => {
-                    const rating = Math.round(p.rating);
-                    const games = p.games_played || 0;
-                    return `${rating} (${games})`;
-                }),
+                text: data.players.map(p => Math.round(p.rating)),
                 mode: 'text',
-                textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
@@ -1020,32 +1017,29 @@
                 hoverinfo: 'skip'
             };
 
-            // Player names (center)
+            // Player names with games played (center)
             const nameTrace = {
                 x: data.players.map(p => uniformLength * 0.5), // Center of bars
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
                 text: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
-                    return name;
+                    const games = p.games_played || 0;
+                    return `${name} (${games} played)`;
                 }),
                 mode: 'text',
-                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textfont: { size: 20, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
             };
 
-            // Ratings and games count (right side)
+            // Ratings (right side)
             const ratingTrace = {
                 x: data.players.map(p => uniformLength * 0.9), // 90% from left edge
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
-                text: data.players.map(p => {
-                    const rating = Math.round(p.rating);
-                    const games = p.games_played || 0;
-                    return `${rating} (${games})`;
-                }),
+                text: data.players.map(p => Math.round(p.rating)),
                 mode: 'text',
-                textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
