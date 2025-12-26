@@ -13,10 +13,11 @@ def get_current_ratings(game_folder):
     
     if not os.path.exists(game_dir):
         print(f"Game directory not found: {game_dir}")
-        return {}, {}
+        return {}, {}, {}
     
     ratings = {}
     games_played = {}
+    unique_opponents = {}
 
     for filename in os.listdir(game_dir):
         if filename.endswith('.csv'):
@@ -31,17 +32,22 @@ def get_current_ratings(game_folder):
 
                     # Count games played (rows minus initial rating row)
                     games_played[player_name] = len(df) - 1
+
+                    # Count unique opponents (exclude "no opponent" initial row)
+                    opponents = df['opponent'].dropna().unique()
+                    opponents = [o for o in opponents if o != 'no opponent']
+                    unique_opponents[player_name] = len(opponents)
             except Exception as e:
                 print(f"Error reading file {filepath}: {e}")
 
-    return ratings, games_played
+    return ratings, games_played, unique_opponents
 
 def create_leaderboard_json(game_folder, excluded_players=None):
     """Create leaderboard data in JSON format for Plotly.js"""
     if excluded_players is None:
         excluded_players = []
-    
-    ratings, games_played = get_current_ratings(game_folder)
+
+    ratings, games_played, unique_opponents = get_current_ratings(game_folder)
 
     if not ratings:
         return {"error": f"No player data found in {game_folder}"}
@@ -53,20 +59,26 @@ def create_leaderboard_json(game_folder, excluded_players=None):
     if not filtered_ratings:
         return {"error": f"No players remaining after exclusions in {game_folder}"}
 
+    # Find max games and max unique opponents (for badges)
+    filtered_players = list(filtered_ratings.keys())
+    max_games = max(games_played.get(p, 0) for p in filtered_players)
+    max_opponents = max(unique_opponents.get(p, 0) for p in filtered_players)
+
     # Sort players: first by whether they've played games, then by rating
     sorted_players = sorted(filtered_ratings.items(),
                           key=lambda x: (games_played[x[0]] > 0, x[1]),
                           reverse=True)
-    
+
     # Prepare data for Plotly
     players_data = []
     for i, (player, rating) in enumerate(sorted_players):
         # Format player name
         display_name = player.replace('_', ' ').title()
         display_name = display_name.replace(' Q', ' (-♛)')
-        
+
         # Determine status and color
         player_games = games_played[player]
+        player_opponents = unique_opponents.get(player, 0)
         if player_games == 0:
             status = "new"
             color = "#90EE90"  # Light green
@@ -83,12 +95,21 @@ def create_leaderboard_json(game_folder, excluded_players=None):
             status = "regular"
             color = "#E8E8E8"  # Light gray
 
+        # Determine badges (ties allowed)
+        badges = []
+        if player_games > 0 and player_games == max_games:
+            badges.append("most_games")  # ⭐
+        if player_opponents > 0 and player_opponents == max_opponents:
+            badges.append("most_opponents")  # 🤝
+
         players_data.append({
             "position": i + 1,
             "player": player,
             "display_name": display_name,
             "rating": int(rating),
             "games_played": player_games,
+            "unique_opponents": player_opponents,
+            "badges": badges,
             "has_played": player_games > 0,  # Backwards compatibility
             "status": status,
             "color": color
