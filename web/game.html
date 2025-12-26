@@ -904,19 +904,32 @@
                 hoverinfo: 'skip'
             };
 
-            // Player names with games played and badges (center-left)
+            // Player names with games played (center-left)
             const nameTrace = {
                 x: data.players.map(p => p.rating * 0.50), // Center position
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
                 text: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
                     const games = p.games_played || 0;
-                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join(' ');
-                    const badgePrefix = badges ? badges + ' ' : '';
-                    return `${badgePrefix}${name} (${games} played)`;
+                    return `${name} (${games} played)`;
                 }),
                 mode: 'text',
                 textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textposition: 'middle center',
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            // Badges trace (larger emojis, positioned before names)
+            const badgeTrace = {
+                x: data.players.map(p => p.rating * 0.18), // Left of names
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                text: data.players.map((p, index) => {
+                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join(' ');
+                    return badges;
+                }),
+                mode: 'text',
+                textfont: { size: 32 },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
@@ -934,14 +947,14 @@
                 hoverinfo: 'skip'
             };
 
-            const traces = [barTrace, positionTrace, nameTrace, ratingTrace];
-            
+            const traces = [barTrace, positionTrace, badgeTrace, nameTrace, ratingTrace];
+
             const layout = {
                 title: {
                     text: `🏆 ${data.game.charAt(0).toUpperCase() + data.game.slice(1)} Leaderboard`,
                     font: { size: 24, color: '#2d3748', family: 'Inter, sans-serif' }
                 },
-                xaxis: { 
+                xaxis: {
                     title: {
                         text: 'ELO Rating',
                         font: { size: 14, color: '#4a5568' }
@@ -951,7 +964,7 @@
                     tickfont: { color: '#4a5568' },
                     fixedrange: true
                 },
-                yaxis: { 
+                yaxis: {
                     title: '',
                     showgrid: false,
                     showticklabels: false,  // Hide the y-axis labels completely
@@ -960,11 +973,20 @@
                     dtick: 1, // Ensure proper spacing between bars
                     fixedrange: true
                 },
-                margin: { l: 50, r: 50, t: 80, b: 50 },
+                margin: { l: 50, r: 50, t: 80, b: 70 },
                 showlegend: false,
                 plot_bgcolor: 'rgba(248,250,252,0.3)',
                 paper_bgcolor: 'rgba(0,0,0,0)',
-                font: { family: 'Inter, sans-serif' }
+                font: { family: 'Inter, sans-serif' },
+                annotations: [{
+                    x: 0.5,
+                    y: -0.12,
+                    xref: 'paper',
+                    yref: 'paper',
+                    text: '⭐ Most games played  •  🤝 Most different opponents',
+                    showarrow: false,
+                    font: { size: 14, color: '#666' }
+                }]
             };
             
             const config = {
@@ -1019,19 +1041,32 @@
                 hoverinfo: 'skip'
             };
 
-            // Player names with games played and badges (center)
+            // Player names with games played (center)
             const nameTrace = {
                 x: data.players.map(p => uniformLength * 0.5), // Center of bars
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
                 text: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
                     const games = p.games_played || 0;
-                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join(' ');
-                    const badgePrefix = badges ? badges + ' ' : '';
-                    return `${badgePrefix}${name} (${games} played)`;
+                    return `${name} (${games} played)`;
                 }),
                 mode: 'text',
                 textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textposition: 'middle center',
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            // Badges trace (larger emojis, positioned before names)
+            const badgeTrace = {
+                x: data.players.map(p => uniformLength * 0.18), // Left of names
+                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
+                text: data.players.map((p, index) => {
+                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join(' ');
+                    return badges;
+                }),
+                mode: 'text',
+                textfont: { size: 32 },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
@@ -1049,7 +1084,7 @@
                 hoverinfo: 'skip'
             };
 
-            const traces = [barTrace, positionTrace, nameTrace, ratingTrace];
+            const traces = [barTrace, positionTrace, badgeTrace, nameTrace, ratingTrace];
 
             const layout = {
                 title: {
@@ -1072,13 +1107,22 @@
                     dtick: 1, // Ensure proper spacing between bars
                     fixedrange: true
                 },
-                margin: { l: 50, r: 50, t: 80, b: 50 },
+                margin: { l: 50, r: 50, t: 80, b: 70 },
                 showlegend: false,
                 plot_bgcolor: 'rgba(248,250,252,0.3)',
                 paper_bgcolor: 'rgba(0,0,0,0)',
-                font: { family: 'Inter, sans-serif' }
+                font: { family: 'Inter, sans-serif' },
+                annotations: [{
+                    x: 0.5,
+                    y: -0.12,
+                    xref: 'paper',
+                    yref: 'paper',
+                    text: '⭐ Most games played  •  🤝 Most different opponents',
+                    showarrow: false,
+                    font: { size: 14, color: '#666' }
+                }]
             };
-            
+
             const config = {
                 responsive: true,
                 displayModeBar: true,
