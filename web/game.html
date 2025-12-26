@@ -887,7 +887,8 @@
                 customdata: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
                     const rating = Math.round(p.rating);
-                    return `${name}: ${rating}`;
+                    const games = p.games_played || 0;
+                    return `${name}: ${rating} (${games} games)`;
                 })
             };
 
@@ -918,13 +919,17 @@
                 hoverinfo: 'skip'
             };
 
-            // Ratings (right side)
+            // Ratings and games count (right side)
             const ratingTrace = {
                 x: data.players.map(p => p.rating * 0.9), // 90% from left edge
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
-                text: data.players.map(p => Math.round(p.rating)),
+                text: data.players.map(p => {
+                    const rating = Math.round(p.rating);
+                    const games = p.games_played || 0;
+                    return `${rating} (${games})`;
+                }),
                 mode: 'text',
-                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
@@ -998,7 +1003,8 @@
                 customdata: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
                     const rating = Math.round(p.rating);
-                    return `${name}: ${rating}`;
+                    const games = p.games_played || 0;
+                    return `${name}: ${rating} (${games} games)`;
                 })
             };
 
@@ -1029,26 +1035,30 @@
                 hoverinfo: 'skip'
             };
 
-            // Ratings (right side)
+            // Ratings and games count (right side)
             const ratingTrace = {
                 x: data.players.map(p => uniformLength * 0.9), // 90% from left edge
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
-                text: data.players.map(p => Math.round(p.rating)),
+                text: data.players.map(p => {
+                    const rating = Math.round(p.rating);
+                    const games = p.games_played || 0;
+                    return `${rating} (${games})`;
+                }),
                 mode: 'text',
-                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
             };
 
             const traces = [barTrace, positionTrace, nameTrace, ratingTrace];
-            
+
             const layout = {
                 title: {
                     text: `🏆 ${data.game.charAt(0).toUpperCase() + data.game.slice(1)} Leaderboard`,
                     font: { size: 24, color: '#2d3748', family: 'Inter, sans-serif' }
                 },
-                xaxis: { 
+                xaxis: {
                     title: '',
                     showgrid: false,
                     showticklabels: false,  // Hide x-axis since bars are uniform

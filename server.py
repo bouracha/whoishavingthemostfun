@@ -1549,31 +1549,31 @@ def calculate_bookmaker_odds(prob_a_wins: float, prob_b_wins: float, k: float = 
     p_b = prob_b_wins / total
     p_draw = p_draw_raw / total
 
-    # Step 4: Add bookmaker margin (5% vig)
-    # According to the spec: Decimal = 1 / (p × (1 − 0.05))
+    # Step 4: Add bookmaker margin (5% vig/overround)
+    # Decimal = 1 / (p × (1 + margin)) creates ~105% implied probability book
     margin = 0.05
 
     # Calculate decimal odds with margin
-    decimal_a = 1 / (p_a * (1 - margin)) if p_a > 0 else float('inf')
-    decimal_b = 1 / (p_b * (1 - margin)) if p_b > 0 else float('inf')
-    decimal_draw = 1 / (p_draw * (1 - margin)) if p_draw > 0 else float('inf')
+    decimal_a = 1 / (p_a * (1 + margin)) if p_a > 0 else float('inf')
+    decimal_b = 1 / (p_b * (1 + margin)) if p_b > 0 else float('inf')
+    decimal_draw = 1 / (p_draw * (1 + margin)) if p_draw > 0 else float('inf')
 
     # Double Chance probabilities
     p_a_or_draw = p_a + p_draw
     p_no_draw = p_a + p_b
     p_b_or_draw = p_b + p_draw
 
-    decimal_a_or_draw = 1 / (p_a_or_draw * (1 - margin)) if p_a_or_draw > 0 else float('inf')
-    decimal_no_draw = 1 / (p_no_draw * (1 - margin)) if p_no_draw > 0 else float('inf')
-    decimal_b_or_draw = 1 / (p_b_or_draw * (1 - margin)) if p_b_or_draw > 0 else float('inf')
+    decimal_a_or_draw = 1 / (p_a_or_draw * (1 + margin)) if p_a_or_draw > 0 else float('inf')
+    decimal_no_draw = 1 / (p_no_draw * (1 + margin)) if p_no_draw > 0 else float('inf')
+    decimal_b_or_draw = 1 / (p_b_or_draw * (1 + margin)) if p_b_or_draw > 0 else float('inf')
 
     # Draw No Bet probabilities
     p_a_dnb = p_a / (1 - p_draw) if p_draw < 1 else 0
     p_b_dnb = p_b / (1 - p_draw) if p_draw < 1 else 0
 
     # Apply margin to DNB odds
-    decimal_a_dnb = 1 / (p_a_dnb * (1 - margin)) if p_a_dnb > 0 else float('inf')
-    decimal_b_dnb = 1 / (p_b_dnb * (1 - margin)) if p_b_dnb > 0 else float('inf')
+    decimal_a_dnb = 1 / (p_a_dnb * (1 + margin)) if p_a_dnb > 0 else float('inf')
+    decimal_b_dnb = 1 / (p_b_dnb * (1 + margin)) if p_b_dnb > 0 else float('inf')
 
     # Step 5: Convert decimal to fractional odds
     def decimal_to_fractional(decimal_odds):

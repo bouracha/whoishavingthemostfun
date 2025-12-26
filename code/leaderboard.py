@@ -16,46 +16,46 @@ def get_current_ratings(game_folder):
         return {}, {}
     
     ratings = {}
-    has_played = {}
-    
+    games_played = {}
+
     for filename in os.listdir(game_dir):
         if filename.endswith('.csv'):
             player_name = filename[:-4]
             filepath = os.path.join(game_dir, filename)
-            
+
             try:
                 df = pd.read_csv(filepath)
                 if not df.empty:
                     current_rating = df['rating'].iloc[-1]
                     ratings[player_name] = current_rating
-                    
-                    # Check if player has played any games (more than just initial rating)
-                    has_played[player_name] = len(df) > 1
+
+                    # Count games played (rows minus initial rating row)
+                    games_played[player_name] = len(df) - 1
             except Exception as e:
                 print(f"Error reading file {filepath}: {e}")
-    
-    return ratings, has_played
+
+    return ratings, games_played
 
 def create_leaderboard_json(game_folder, excluded_players=None):
     """Create leaderboard data in JSON format for Plotly.js"""
     if excluded_players is None:
         excluded_players = []
     
-    ratings, has_played = get_current_ratings(game_folder)
-    
+    ratings, games_played = get_current_ratings(game_folder)
+
     if not ratings:
         return {"error": f"No player data found in {game_folder}"}
-    
+
     # Filter out excluded players
-    filtered_ratings = {player: rating for player, rating in ratings.items() 
+    filtered_ratings = {player: rating for player, rating in ratings.items()
                        if player.lower() not in [excluded.lower() for excluded in excluded_players]}
-    
+
     if not filtered_ratings:
         return {"error": f"No players remaining after exclusions in {game_folder}"}
-    
+
     # Sort players: first by whether they've played games, then by rating
-    sorted_players = sorted(filtered_ratings.items(), 
-                          key=lambda x: (has_played[x[0]], x[1]), 
+    sorted_players = sorted(filtered_ratings.items(),
+                          key=lambda x: (games_played[x[0]] > 0, x[1]),
                           reverse=True)
     
     # Prepare data for Plotly
@@ -66,14 +66,15 @@ def create_leaderboard_json(game_folder, excluded_players=None):
         display_name = display_name.replace(' Q', ' (-♛)')
         
         # Determine status and color
-        if not has_played[player]:
+        player_games = games_played[player]
+        if player_games == 0:
             status = "new"
             color = "#90EE90"  # Light green
         elif i == 0:
             status = "gold"
             color = "#FFD700"  # Gold
         elif i == 1:
-            status = "silver" 
+            status = "silver"
             color = "#C0C0C0"  # Silver
         elif i == 2:
             status = "bronze"
@@ -81,13 +82,14 @@ def create_leaderboard_json(game_folder, excluded_players=None):
         else:
             status = "regular"
             color = "#E8E8E8"  # Light gray
-        
+
         players_data.append({
             "position": i + 1,
             "player": player,
             "display_name": display_name,
             "rating": int(rating),
-            "has_played": has_played[player],
+            "games_played": player_games,
+            "has_played": player_games > 0,  # Backwards compatibility
             "status": status,
             "color": color
         })
