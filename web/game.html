@@ -904,18 +904,19 @@
                 hoverinfo: 'skip'
             };
 
-            // Player names with games played and badges (center-left, adjusted for images)
+            // Player names with games played and badges (center-left)
             const nameTrace = {
-                x: data.players.map(p => p.rating * 0.50), // Center position with more space from medals
+                x: data.players.map(p => p.rating * 0.50), // Center position
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
                 text: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
                     const games = p.games_played || 0;
-                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join('');
-                    return `${name} (${games} played) ${badges}`;
+                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join(' ');
+                    const badgePrefix = badges ? badges + ' ' : '';
+                    return `${badgePrefix}${name} (${games} played)`;
                 }),
                 mode: 'text',
-                textfont: { size: 20, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
@@ -976,7 +977,7 @@
             
             Plotly.newPlot('leaderboardChart', traces, layout, config).then(() => {
                 // Add player images and medal annotations
-                addPlayerImagesAndMedals(data);
+                // addPlayerImagesAndMedals(data);  // Disabled for now
             });
         }
         
@@ -1025,11 +1026,12 @@
                 text: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
                     const games = p.games_played || 0;
-                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join('');
-                    return `${name} (${games} played) ${badges}`;
+                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join(' ');
+                    const badgePrefix = badges ? badges + ' ' : '';
+                    return `${badgePrefix}${name} (${games} played)`;
                 }),
                 mode: 'text',
-                textfont: { size: 20, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
+                textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
