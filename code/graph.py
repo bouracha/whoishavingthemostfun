@@ -145,6 +145,13 @@ def plot_rating(filepath, label):
         min_length = min(len(times), len(ratings))
         times = times[:min_length]
         ratings = ratings[:min_length]
+
+        # Sort by timestamp (some entries may have been added out of order)
+        if times:
+            sorted_pairs = sorted(zip(times, ratings), key=lambda p: p[0])
+            times, ratings = zip(*sorted_pairs)
+            times = list(times)
+            ratings = list(ratings)
         
         # Get starting rating (from first row, before games)
         starting_rating = data['rating'].iloc[0] if not data.empty else 1200
@@ -211,52 +218,42 @@ def create_ratings_progress_json(csv_files):
     # Define colors for chart visualization
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
     
-    # Process each player's data
+    # Process each player's data — send raw points for full-resolution zoom
     players_series = []
     player_index = 0
-    
+
     for label, (times, ratings, starting_rating, current_rating) in player_data.items():
         if times:  # Player has games
-            # Bucket the player's data
-            bucket_centers, bucket_means, bucket_upper_errors, bucket_lower_errors = bucket_player_data(
-                times, ratings, bucket_boundaries, starting_rating, current_rating
-            )
+            color = colors[player_index % len(colors)]
 
-            if bucket_centers:
-                color = colors[player_index % len(colors)]
+            # Format player name
+            player_name = label.split('/')[-1] if '/' in label else label
+            player_name = player_name.replace('.csv', '')
+            display_name = player_name.replace('_', ' ').title()
+            display_name = display_name.replace(' Q', ' (-♛)')
 
-                # Format player name
-                player_name = label.split('/')[-1] if '/' in label else label
-                display_name = player_name.replace('_', ' ').title()
-                display_name = display_name.replace(' Q', ' (-♛)')
+            # Check if player is inactive
+            is_inactive = times[-1] != last_game_time
 
-                # Check if player is inactive
-                is_inactive = times[-1] != last_game_time
+            # Send every raw data point — Plotly handles zoom/detail natively
+            x_data = [t.isoformat() for t in times]
+            y_data = [int(float(r)) for r in ratings]
 
-                # Convert times to ISO strings for JSON serialization
-                x_data = [t.isoformat() for t in bucket_centers]
-                y_data = [int(rating) for rating in bucket_means]  # Floor round all chart data
-                upper_error_data = [int(e) for e in bucket_upper_errors]  # Floor round upper errors
-                lower_error_data = [int(e) for e in bucket_lower_errors]  # Floor round lower errors
-                
-                # Use the actual current rating from the CSV file
-                # current_rating is already passed from plot_rating function
-                
-                players_series.append({
-                    'name': display_name,
-                    'player': player_name,
-                    'x': x_data,
-                    'y': y_data,
-                    'upper_errors': upper_error_data,
-                    'lower_errors': lower_error_data,
-                    'color': color,
-                    'current_rating': int(current_rating),
-                    'starting_rating': int(starting_rating),  # Floor round starting rating
-                    'games_played': len(times),
-                    'is_inactive': is_inactive
-                })
-                
-                player_index += 1
+            players_series.append({
+                'name': display_name,
+                'player': player_name,
+                'x': x_data,
+                'y': y_data,
+                'upper_errors': [],
+                'lower_errors': [],
+                'color': color,
+                'current_rating': int(current_rating),
+                'starting_rating': int(starting_rating),
+                'games_played': len(times),
+                'is_inactive': is_inactive
+            })
+
+            player_index += 1
     
     return {
         'title': f'{game_type} Ratings Progress',

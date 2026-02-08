@@ -1086,30 +1086,50 @@
             // Sort players by current rating (highest to lowest)
             const sortedPlayers = [...data.players].sort((a, b) => b.current_rating - a.current_rating);
             
-            const traces = sortedPlayers.map(player => ({
-                x: player.x,  // Use 'x' instead of 'timestamps'
-                y: player.y,  // Use 'y' instead of 'ratings'
-                error_y: {
-                    type: 'data',
-                    array: player.upper_errors || player.ranges?.map(r => r / 2) || [],  // Upper error (above mean)
-                    arrayminus: player.lower_errors || player.ranges?.map(r => r / 2) || [],  // Lower error (below mean)
-                    visible: true,
-                    color: player.color,
-                    thickness: 2,
-                    width: 0
-                },
-                mode: 'lines+markers',
-                name: player.name,  // Use 'name' instead of 'display_name'
-                line: {
-                    width: 3,
-                    color: player.color
-                },
-                marker: {
-                    size: 6,
-                    color: player.color
-                },
-                hovertemplate: `<b>%{fullData.name}</b><br>Rating: %{y:.0f}<extra></extra>`
-            }));
+            const traces = [];
+            const annotations = [];
+
+            sortedPlayers.forEach(player => {
+                const n = player.x.length;
+
+                // Main line trace — smaller markers for history
+                traces.push({
+                    x: player.x,
+                    y: player.y,
+                    mode: 'lines+markers',
+                    name: player.name,
+                    line: { width: 2.5, color: player.color },
+                    marker: { size: 4, color: player.color },
+                    hovertemplate: `<b>%{fullData.name}</b><br>Rating: %{y:.0f}<br>%{x}<extra></extra>`
+                });
+
+                // Last point highlight — big ring so it stands out
+                if (n > 0) {
+                    traces.push({
+                        x: [player.x[n - 1]],
+                        y: [player.y[n - 1]],
+                        mode: 'markers',
+                        marker: {
+                            size: 12,
+                            color: player.color,
+                            line: { color: 'white', width: 2 }
+                        },
+                        showlegend: false,
+                        hovertemplate: `<b>${player.name}</b><br>Current: %{y:.0f}<extra></extra>`
+                    });
+
+                    // Rating label next to last point
+                    annotations.push({
+                        x: player.x[n - 1],
+                        y: player.y[n - 1],
+                        text: `<b>${player.y[n - 1]}</b>`,
+                        showarrow: false,
+                        xanchor: 'left',
+                        xshift: 10,
+                        font: { size: 11, color: player.color }
+                    });
+                }
+            });
             
             const layout = {
                 title: {
@@ -1145,15 +1165,17 @@
                 },
                 margin: { l: 50, r: 50, t: 80, b: 50 },
                 showlegend: true,
-                legend: { 
+                legend: {
                     orientation: 'v',
                     x: 1.02,
-                    y: 1
+                    y: 1,
+                    font: { size: 14 }
                 },
                 plot_bgcolor: 'rgba(0,0,0,0)',
                 paper_bgcolor: 'rgba(0,0,0,0)',
                 font: { family: 'Inter, sans-serif' },
-                hovermode: 'x unified'
+                hovermode: 'x unified',
+                annotations: annotations
             };
             
             const config = {
