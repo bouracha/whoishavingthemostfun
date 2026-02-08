@@ -32,8 +32,7 @@
       const msg = document.getElementById('msg');
       msg.style.display = 'none';
       if (!username || !password) { msg.textContent = 'Enter username and password'; msg.style.display = 'block'; return; }
-      const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      const url = isLocal ? 'http://localhost:8080/api/auth/login' : '/api/auth/login';
+      const url = '/api/auth/login';
       try {
         const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ username, password }) });
         const data = await res.json();

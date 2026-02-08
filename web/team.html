@@ -779,9 +779,7 @@
             // Determine API URL based on where we're running
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
-            const apiUrl = isLocal 
-                ? 'http://localhost:8080/api/health'
-                : '/api/health'; // Same domain - works for both HTTP and HTTPS!
+            const apiUrl = '/api/health';
             
             try {
                 const response = await fetch(apiUrl);
@@ -814,7 +812,7 @@
         async function getCurrentUserSession() {
             try {
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                const url = isLocal ? 'http://localhost:8080/api/auth/session' : '/api/auth/session';
+                const url = '/api/auth/session';
                 const response = await fetch(url, { 
                     method: 'GET', 
                     credentials: 'include' 
@@ -879,12 +877,12 @@
                 
                 // Fetch both pending and confirmed results
                 const pendingUrl = team 
-                    ? (isLocal ? `http://localhost:8080/api/${team}/pending-results?offset=0&limit=50` : `/api/${team}/pending-results?offset=0&limit=50`)
-                    : (isLocal ? `http://localhost:8080/api/pending-results?offset=0&limit=50` : `/api/pending-results?offset=0&limit=50`);
+                    ? (`/api/${team}/pending-results?offset=0&limit=50`)
+                    : (`/api/pending-results?offset=0&limit=50`);
                 
                 const confirmedUrl = team 
-                    ? (isLocal ? `http://localhost:8080/api/${team}/recent-results?offset=${offset}&limit=15` : `/api/${team}/recent-results?offset=${offset}&limit=15`)
-                    : (isLocal ? `http://localhost:8080/api/recent-results?offset=${offset}&limit=15` : `/api/recent-results?offset=${offset}&limit=15`);
+                    ? (`/api/${team}/recent-results?offset=${offset}&limit=15`)
+                    : (`/api/recent-results?offset=${offset}&limit=15`);
                 
                 // Fetch both pending and confirmed results in parallel
                 const [pendingResponse, confirmedResponse] = await Promise.all([
@@ -1120,7 +1118,7 @@
         async function logout() {
             try {
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                const url = isLocal ? 'http://localhost:8080/api/auth/logout' : '/api/auth/logout';
+                const url = '/api/auth/logout';
                 await fetch(url, { method: 'POST', credentials: 'include' });
             } catch (e) {
                 console.error('Logout error:', e);
@@ -1137,8 +1135,8 @@
             try {
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrl = team 
-                    ? (isLocal ? `http://localhost:8080/api/${team}/undo-last-result` : `/api/${team}/undo-last-result`)
-                    : (isLocal ? `http://localhost:8080/api/undo-last-result` : `/api/undo-last-result`);
+                    ? (`/api/${team}/undo-last-result`)
+                    : (`/api/undo-last-result`);
                 
                 // Disable all undo buttons during the operation
                 const undoButtons = document.querySelectorAll('.undo-button');
@@ -1232,8 +1230,8 @@
                 
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrl = currentTeam 
-                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/comments` : `/api/${currentTeam}/comments`)
-                    : (isLocal ? `http://localhost:8080/api/comments` : `/api/comments`);
+                    ? (`/api/${currentTeam}/comments`)
+                    : (`/api/comments`);
                 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -1310,8 +1308,8 @@
                 
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrl = currentTeam 
-                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results/${index}/admin-note` : `/api/${currentTeam}/pending-results/${index}/admin-note`)
-                    : (isLocal ? `http://localhost:8080/api/pending-results/${index}/admin-note` : `/api/pending-results/${index}/admin-note`);
+                    ? (`/api/${currentTeam}/pending-results/${index}/admin-note`)
+                    : (`/api/pending-results/${index}/admin-note`);
                 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -1356,8 +1354,8 @@
             try {
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const pendingUrl = currentTeam 
-                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results?offset=0&limit=100` : `/api/${currentTeam}/pending-results?offset=0&limit=100`)
-                    : (isLocal ? `http://localhost:8080/api/pending-results?offset=0&limit=100` : `/api/pending-results?offset=0&limit=100`);
+                    ? (`/api/${currentTeam}/pending-results?offset=0&limit=100`)
+                    : (`/api/pending-results?offset=0&limit=100`);
                 
                 const response = await fetch(pendingUrl, { credentials: 'include' });
                 const data = await response.json();
@@ -1392,8 +1390,8 @@
                 
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrl = currentTeam 
-                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/approve-all-pending` : `/api/${currentTeam}/approve-all-pending`)
-                    : (isLocal ? `http://localhost:8080/api/approve-all-pending` : `/api/approve-all-pending`);
+                    ? (`/api/${currentTeam}/approve-all-pending`)
+                    : (`/api/approve-all-pending`);
                 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -1406,8 +1404,8 @@
                     // After successfully approving, also delete all pending results
                     try {
                         const deleteUrl = currentTeam 
-                            ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results` : `/api/${currentTeam}/pending-results`)
-                            : (isLocal ? `http://localhost:8080/api/pending-results` : `/api/pending-results`);
+                            ? (`/api/${currentTeam}/pending-results`)
+                            : (`/api/pending-results`);
                         
                         const deleteResponse = await fetch(deleteUrl, {
                             method: 'DELETE',
@@ -1457,8 +1455,8 @@
                 
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrl = currentTeam 
-                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results` : `/api/${currentTeam}/pending-results`)
-                    : (isLocal ? `http://localhost:8080/api/pending-results` : `/api/pending-results`);
+                    ? (`/api/${currentTeam}/pending-results`)
+                    : (`/api/pending-results`);
                 
                 const response = await fetch(apiUrl, {
                     method: 'DELETE',
@@ -1493,8 +1491,8 @@
             try {
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const apiUrl = currentTeam 
-                    ? (isLocal ? `http://localhost:8080/api/${currentTeam}/pending-results/${index}` : `/api/${currentTeam}/pending-results/${index}`)
-                    : (isLocal ? `http://localhost:8080/api/pending-results/${index}` : `/api/pending-results/${index}`);
+                    ? (`/api/${currentTeam}/pending-results/${index}`)
+                    : (`/api/pending-results/${index}`);
                 
                 const response = await fetch(apiUrl, {
                     method: 'DELETE',

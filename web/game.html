@@ -28,13 +28,10 @@
         </div>
 
         <!-- Interactive Chart Containers -->
-        <div id="leaderboardChart" style="display: none; width: 100%; height: 1000px; position: relative; touch-action: pan-x pan-y;">
+        <div id="leaderboardChart" style="display: none; width: 100%; height: 1000px; position: relative;">
             <div id="playerImagesOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;"></div>
         </div>
-        <div id="leaderboardLegend" style="display: none; text-align: center; padding: 10px; font-size: 16px; color: #444;">
-            ⭐ Most games played   •   🤝 Most different opponents
-        </div>
-        <div id="ratingsProgressChart" style="display: none; width: 100%; height: 600px; touch-action: pan-x pan-y;"></div>
+        <div id="ratingsProgressChart" style="display: none; width: 100%; height: 600px;"></div>
 
         <!-- Probability Matrix Container -->
         <div id="probabilityContainer" style="display: none;">
@@ -237,7 +234,6 @@
             
             // Set initial display to interactive leaderboard
             document.getElementById('leaderboardChart').style.display = 'block';
-            document.getElementById('leaderboardLegend').style.display = 'block';
             document.getElementById('ratingsProgressChart').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'none';
             
@@ -454,11 +450,10 @@
             // Hide other containers
             document.getElementById('probabilityContainer').style.display = 'none';
             document.getElementById('ratingsProgressChart').style.display = 'none';
-
-            // Show leaderboard chart container and legend
+            
+            // Show leaderboard chart container
             document.getElementById('leaderboardChart').style.display = 'block';
-            document.getElementById('leaderboardLegend').style.display = 'block';
-
+            
             // Update button states
             document.querySelectorAll('.button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
@@ -475,8 +470,7 @@
             // Hide other containers
             document.getElementById('probabilityContainer').style.display = 'none';
             document.getElementById('leaderboardChart').style.display = 'none';
-            document.getElementById('leaderboardLegend').style.display = 'none';
-
+            
             // Clear player images overlay
             clearPlayerImagesOverlay();
             
@@ -497,7 +491,6 @@
             
             // Hide all chart containers, show probability container
             document.getElementById('leaderboardChart').style.display = 'none';
-            document.getElementById('leaderboardLegend').style.display = 'none';
             document.getElementById('ratingsProgressChart').style.display = 'none';
             document.getElementById('probabilityContainer').style.display = 'block';
             
@@ -894,8 +887,7 @@
                 customdata: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
                     const rating = Math.round(p.rating);
-                    const games = p.games_played || 0;
-                    return `${name}: ${rating} (${games} games)`;
+                    return `${name}: ${rating}`;
                 })
             };
 
@@ -911,32 +903,16 @@
                 hoverinfo: 'skip'
             };
 
-            // Player names with games played (center-left)
+            // Player names (center-left, adjusted for images)
             const nameTrace = {
-                x: data.players.map(p => p.rating * 0.50), // Center position
+                x: data.players.map(p => p.rating * 0.50), // Center position with more space from medals
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
                 text: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
-                    const games = p.games_played || 0;
-                    return `${name} (${games} played)`;
+                    return name;
                 }),
                 mode: 'text',
-                textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
-                textposition: 'middle center',
-                showlegend: false,
-                hoverinfo: 'skip'
-            };
-
-            // Badges trace (larger emojis, positioned before names)
-            const badgeTrace = {
-                x: data.players.map(p => p.rating * 0.18), // Left of names
-                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
-                text: data.players.map((p, index) => {
-                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join(' ');
-                    return badges;
-                }),
-                mode: 'text',
-                textfont: { size: 32 },
+                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
@@ -954,14 +930,14 @@
                 hoverinfo: 'skip'
             };
 
-            const traces = [barTrace, positionTrace, badgeTrace, nameTrace, ratingTrace];
-
+            const traces = [barTrace, positionTrace, nameTrace, ratingTrace];
+            
             const layout = {
                 title: {
                     text: `🏆 ${data.game.charAt(0).toUpperCase() + data.game.slice(1)} Leaderboard`,
                     font: { size: 24, color: '#2d3748', family: 'Inter, sans-serif' }
                 },
-                xaxis: {
+                xaxis: { 
                     title: {
                         text: 'ELO Rating',
                         font: { size: 14, color: '#4a5568' }
@@ -971,7 +947,7 @@
                     tickfont: { color: '#4a5568' },
                     fixedrange: true
                 },
-                yaxis: {
+                yaxis: { 
                     title: '',
                     showgrid: false,
                     showticklabels: false,  // Hide the y-axis labels completely
@@ -980,22 +956,13 @@
                     dtick: 1, // Ensure proper spacing between bars
                     fixedrange: true
                 },
-                margin: { l: 50, r: 50, t: 80, b: 90 },
+                margin: { l: 50, r: 50, t: 80, b: 50 },
                 showlegend: false,
                 plot_bgcolor: 'rgba(248,250,252,0.3)',
                 paper_bgcolor: 'rgba(0,0,0,0)',
-                font: { family: 'Inter, sans-serif' },
-                annotations: [{
-                    x: 0.5,
-                    y: -0.15,
-                    xref: 'paper',
-                    yref: 'paper',
-                    text: '⭐ Most games played   •   🤝 Most different opponents',
-                    showarrow: false,
-                    font: { size: 16, color: '#444' }
-                }]
+                font: { family: 'Inter, sans-serif' }
             };
-
+            
             const config = {
                 responsive: true,
                 displayModeBar: true,
@@ -1006,7 +973,7 @@
             
             Plotly.newPlot('leaderboardChart', traces, layout, config).then(() => {
                 // Add player images and medal annotations
-                // addPlayerImagesAndMedals(data);  // Disabled for now
+                addPlayerImagesAndMedals(data);
             });
         }
         
@@ -1031,8 +998,7 @@
                 customdata: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
                     const rating = Math.round(p.rating);
-                    const games = p.games_played || 0;
-                    return `${name}: ${rating} (${games} games)`;
+                    return `${name}: ${rating}`;
                 })
             };
 
@@ -1048,32 +1014,16 @@
                 hoverinfo: 'skip'
             };
 
-            // Player names with games played (center)
+            // Player names (center)
             const nameTrace = {
                 x: data.players.map(p => uniformLength * 0.5), // Center of bars
                 y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
                 text: data.players.map((p, index) => {
                     const name = p.display_name || p.name;
-                    const games = p.games_played || 0;
-                    return `${name} (${games} played)`;
+                    return name;
                 }),
                 mode: 'text',
-                textfont: { size: 22, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
-                textposition: 'middle center',
-                showlegend: false,
-                hoverinfo: 'skip'
-            };
-
-            // Badges trace (larger emojis, positioned before names)
-            const badgeTrace = {
-                x: data.players.map(p => uniformLength * 0.18), // Left of names
-                y: data.players.map((p, index) => (data.players.length - index - 1) * 1.2),
-                text: data.players.map((p, index) => {
-                    const badges = (p.badges || []).map(b => b === 'most_games' ? '⭐' : b === 'most_opponents' ? '🤝' : '').join(' ');
-                    return badges;
-                }),
-                mode: 'text',
-                textfont: { size: 32 },
+                textfont: { size: 24, color: 'black', family: 'Inter, sans-serif', weight: 'bold' },
                 textposition: 'middle center',
                 showlegend: false,
                 hoverinfo: 'skip'
@@ -1091,14 +1041,14 @@
                 hoverinfo: 'skip'
             };
 
-            const traces = [barTrace, positionTrace, badgeTrace, nameTrace, ratingTrace];
-
+            const traces = [barTrace, positionTrace, nameTrace, ratingTrace];
+            
             const layout = {
                 title: {
                     text: `🏆 ${data.game.charAt(0).toUpperCase() + data.game.slice(1)} Leaderboard`,
                     font: { size: 24, color: '#2d3748', family: 'Inter, sans-serif' }
                 },
-                xaxis: {
+                xaxis: { 
                     title: '',
                     showgrid: false,
                     showticklabels: false,  // Hide x-axis since bars are uniform
@@ -1114,22 +1064,13 @@
                     dtick: 1, // Ensure proper spacing between bars
                     fixedrange: true
                 },
-                margin: { l: 50, r: 50, t: 80, b: 90 },
+                margin: { l: 50, r: 50, t: 80, b: 50 },
                 showlegend: false,
                 plot_bgcolor: 'rgba(248,250,252,0.3)',
                 paper_bgcolor: 'rgba(0,0,0,0)',
-                font: { family: 'Inter, sans-serif' },
-                annotations: [{
-                    x: 0.5,
-                    y: -0.15,
-                    xref: 'paper',
-                    yref: 'paper',
-                    text: '⭐ Most games played   •   🤝 Most different opponents',
-                    showarrow: false,
-                    font: { size: 16, color: '#444' }
-                }]
+                font: { family: 'Inter, sans-serif' }
             };
-
+            
             const config = {
                 responsive: true,
                 displayModeBar: true,
@@ -1179,13 +1120,28 @@
                     title: 'Date',
                     showgrid: true,
                     gridcolor: 'rgba(0,0,0,0.1)',
-                    fixedrange: true
+                    rangeselector: {
+                        buttons: [
+                            { count: 1, label: '1D', step: 'day', stepmode: 'backward' },
+                            { count: 7, label: '1W', step: 'day', stepmode: 'backward' },
+                            { count: 1, label: '1M', step: 'month', stepmode: 'backward' },
+                            { count: 3, label: '3M', step: 'month', stepmode: 'backward' },
+                            { step: 'all', label: 'All' }
+                        ],
+                        activecolor: '#d4a94b',
+                        bgcolor: 'rgba(0,0,0,0.05)',
+                        font: { size: 12 }
+                    },
+                    rangeslider: { visible: true, thickness: 0.06 },
+                    range: [
+                        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        new Date().toISOString()
+                    ]
                 },
-                yaxis: {
+                yaxis: { 
                     title: 'ELO Rating',
                     showgrid: true,
-                    gridcolor: 'rgba(0,0,0,0.1)',
-                    fixedrange: true
+                    gridcolor: 'rgba(0,0,0,0.1)'
                 },
                 margin: { l: 50, r: 50, t: 80, b: 50 },
                 showlegend: true,
